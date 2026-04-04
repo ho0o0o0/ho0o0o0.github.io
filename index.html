@@ -69,6 +69,40 @@
   </style>
 </head>
 <body>
+
+<div id="loginOverlay" style="position:fixed;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a8a);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px;">
+  <div style="width:min(420px,100%);background:#fff;border-radius:24px;box-shadow:0 20px 50px rgba(0,0,0,.25);padding:28px 24px;">
+    <div style="font-size:28px;font-weight:900;color:#1d4ed8;margin-bottom:8px">科研系统 v3</div>
+    <div style="color:#64748b;line-height:1.7;margin-bottom:18px">请输入访问密码进入系统。首次使用默认密码为 <span class="mono">song2026</span>，登录后可在右上角修改密码。</div>
+    <input id="loginPasswordInput" type="password" placeholder="请输入密码" style="width:100%;border:1px solid #d5dbe7;border-radius:14px;padding:14px 16px;font-size:16px;outline:none">
+    <div id="loginMsg" style="min-height:22px;color:#dc2626;font-size:13px;margin-top:10px"></div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="primary" style="flex:1" onclick="rsLogin()">进入系统</button>
+      <button class="soft" style="flex:1" onclick="showPwdHint()">查看提示</button>
+    </div>
+  </div>
+</div>
+
+<div id="pwdManagerBar" style="position:fixed;right:18px;top:18px;z-index:9998;display:none;">
+  <button class="soft" onclick="togglePwdPanel()">🔐 密码管理</button>
+</div>
+
+<div id="pwdPanel" style="position:fixed;right:18px;top:70px;width:min(360px,calc(100vw - 36px));background:#fff;border:1px solid #e5e7eb;border-radius:20px;box-shadow:0 20px 45px rgba(2,6,23,.18);padding:16px;z-index:9998;display:none;">
+  <h3 style="margin:0 0 8px;font-size:18px">密码管理</h3>
+  <div class="small" style="margin-bottom:10px">这里可以直接修改网页登录密码，不需要改代码。密码保存在当前浏览器本机。</div>
+  <label for="oldPwdInput">当前密码</label>
+  <input id="oldPwdInput" type="password" placeholder="输入当前密码">
+  <label for="newPwdInput">新密码</label>
+  <input id="newPwdInput" type="password" placeholder="至少 4 位">
+  <label for="confirmPwdInput">确认新密码</label>
+  <input id="confirmPwdInput" type="password" placeholder="再次输入新密码">
+  <div style="display:flex;gap:10px;margin-top:12px">
+    <button class="primary" style="flex:1" onclick="changeSitePassword()">保存新密码</button>
+    <button class="soft" style="flex:1" onclick="resetSitePassword()">恢复默认</button>
+  </div>
+  <div id="pwdPanelMsg" class="small" style="margin-top:10px;min-height:20px"></div>
+</div>
+
 <div class="wrap">
   <div class="hero">
     <h1>科研系统 v2</h1>
@@ -1890,6 +1924,94 @@ async function oneClickLinkedExport(){
 }
 
 refreshProjectList();
+
+/* ===== Password manager v3 ===== */
+const RS_PWD_KEY = "research_system_v3_site_password_hash";
+const RS_LOGIN_KEY = "research_system_v3_logged_in";
+const RS_DEFAULT_PASSWORD = "song2026";
+
+async function rsHash(text){
+  const enc = new TextEncoder().encode(String(text || ""));
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+async function ensureSitePassword(){
+  let saved = localStorage.getItem(RS_PWD_KEY);
+  if(!saved){
+    saved = await rsHash(RS_DEFAULT_PASSWORD);
+    localStorage.setItem(RS_PWD_KEY, saved);
+  }
+  return saved;
+}
+async function rsLogin(){
+  const input = document.getElementById("loginPasswordInput");
+  const msg = document.getElementById("loginMsg");
+  const pwd = input.value || "";
+  if(!pwd){ msg.textContent = "请输入密码。"; return; }
+  const saved = await ensureSitePassword();
+  const incoming = await rsHash(pwd);
+  if(saved === incoming){
+    localStorage.setItem(RS_LOGIN_KEY, "1");
+    document.getElementById("loginOverlay").style.display = "none";
+    document.getElementById("pwdManagerBar").style.display = "block";
+    msg.textContent = "";
+    input.value = "";
+  }else{
+    msg.textContent = "密码错误，请重试。";
+  }
+}
+function showPwdHint(){
+  document.getElementById("loginMsg").textContent = "默认密码是 song2026。若你已改过，请输入你自己设置的新密码。";
+}
+function togglePwdPanel(){
+  const panel = document.getElementById("pwdPanel");
+  panel.style.display = panel.style.display === "block" ? "none" : "block";
+}
+async function changeSitePassword(){
+  const oldPwd = document.getElementById("oldPwdInput").value || "";
+  const newPwd = document.getElementById("newPwdInput").value || "";
+  const confirmPwd = document.getElementById("confirmPwdInput").value || "";
+  const msg = document.getElementById("pwdPanelMsg");
+  if(!oldPwd || !newPwd || !confirmPwd){ msg.textContent = "请把三个框都填完整。"; msg.style.color = "#dc2626"; return; }
+  if(newPwd.length < 4){ msg.textContent = "新密码至少 4 位。"; msg.style.color = "#dc2626"; return; }
+  if(newPwd !== confirmPwd){ msg.textContent = "两次输入的新密码不一致。"; msg.style.color = "#dc2626"; return; }
+  const saved = await ensureSitePassword();
+  const oldHash = await rsHash(oldPwd);
+  if(saved !== oldHash){ msg.textContent = "当前密码不正确。"; msg.style.color = "#dc2626"; return; }
+  const newHash = await rsHash(newPwd);
+  localStorage.setItem(RS_PWD_KEY, newHash);
+  document.getElementById("oldPwdInput").value = "";
+  document.getElementById("newPwdInput").value = "";
+  document.getElementById("confirmPwdInput").value = "";
+  msg.textContent = "新密码已保存。下次访问用新密码登录。";
+  msg.style.color = "#059669";
+}
+async function resetSitePassword(){
+  const ok = confirm("确认恢复默认密码 song2026 吗？");
+  if(!ok) return;
+  localStorage.setItem(RS_PWD_KEY, await rsHash(RS_DEFAULT_PASSWORD));
+  document.getElementById("pwdPanelMsg").textContent = "已恢复默认密码：song2026";
+  document.getElementById("pwdPanelMsg").style.color = "#d97706";
+}
+document.addEventListener("keydown", function(e){
+  if(e.key === "Enter" && document.getElementById("loginOverlay").style.display !== "none"){
+    rsLogin();
+  }
+});
+window.addEventListener("load", async function(){
+  await ensureSitePassword();
+  const logged = localStorage.getItem(RS_LOGIN_KEY) === "1";
+  if(logged){
+    document.getElementById("loginOverlay").style.display = "none";
+    document.getElementById("pwdManagerBar").style.display = "block";
+  }else{
+    document.getElementById("loginOverlay").style.display = "flex";
+  }
+});
+window.addEventListener("beforeunload", function(){
+  localStorage.removeItem(RS_LOGIN_KEY);
+});
+
 </script>
 </body>
 </html>
