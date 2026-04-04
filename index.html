@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#2563eb" />
+  <title>科研系统 v8 | 图表+统计+报告一键联动导出</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.6/dist/jstat.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <style>
+    :root{
+      --bg:#f5f7fb; --card:#fff; --line:#e5e7eb; --text:#111827; --muted:#6b7280;
+      --blue:#2563eb; --blue2:#1d4ed8; --ok:#059669; --warn:#d97706; --bad:#dc2626;
+      --shadow:0 10px 24px rgba(2,6,23,.08); --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gradient(180deg,#edf4ff 0,#f5f7fb 180px);color:var(--text)}
+    .wrap{max-width:1440px;margin:0 auto;padding:18px 14px 60px}
+    .hero{background:linear-gradient(135deg,#1d4ed8,#2563eb 55%,#3b82f6);color:#fff;border-radius:24px;padding:24px 20px;box-shadow:var(--shadow);margin-bottom:16px}
+    .hero h1{margin:0 0 8px;font-size:30px}.hero p{margin:0;line-height:1.7;opacity:.96}
+    .grid{display:grid;grid-template-columns:420px 1fr;gap:16px}
+    @media (max-width:1080px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px}
+    h2{margin:0 0 10px;font-size:19px}
+    h3{margin:0 0 8px;font-size:16px}
+    .sub{margin:-4px 0 12px;color:var(--muted);font-size:14px;line-height:1.6}
+    label{display:block;font-size:14px;font-weight:700;margin:10px 0 6px}
+    input,textarea,select{width:100%;border:1px solid #d5dbe7;border-radius:12px;padding:12px 14px;font-size:15px;outline:none;background:#fff}
+    textarea{min-height:96px;resize:vertical;line-height:1.6}
+    input:focus,textarea:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .btns,.toolbar,.pillrow{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+    button{border:none;border-radius:12px;padding:11px 15px;font-weight:800;cursor:pointer}
+    .primary{background:var(--blue);color:#fff}.primary:hover{background:var(--blue2)}
+    .light{background:#eaf1ff;color:#1d4ed8}.soft{background:#f3f4f6;color:#374151}.danger{background:#fee2e2;color:#991b1b}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+    .stat{background:#f8fbff;border:1px solid #e2e8f7;border-radius:14px;padding:12px}
+    .stat .n{font-size:22px;font-weight:900;color:#1d4ed8}.stat .t{font-size:12px;color:var(--muted);margin-top:4px}
+    .box{background:#fbfdff;border:1px dashed #cdd8ea;border-radius:16px;padding:14px}
+    .big{font-size:22px;font-weight:900;word-break:break-word;margin-top:6px}
+    .chip{display:inline-block;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800}
+    .ok{background:#ecfdf5;color:#065f46}.warn{background:#fff7ed;color:#9a3412}.bad{background:#fee2e2;color:#991b1b}
+    .pill{padding:8px 12px;border-radius:999px;border:1px solid #dbe3f0;background:#f8fbff;color:#334155;font-size:13px;font-weight:700;cursor:pointer}
+    .pill.active{background:#2563eb;color:#fff}
+    .small{font-size:12px;color:var(--muted);line-height:1.6}.section{margin-top:16px}
+    .group{border:1px solid #e6ebf3;border-radius:14px;padding:12px;margin-bottom:12px;background:#fff}
+    .groupLinks{line-height:2}
+    .tblWrap{max-height:700px;overflow:auto;border:1px solid #e6ebf3;border-radius:16px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 8px;border-bottom:1px solid #edf1f6;vertical-align:top;text-align:left;font-size:14px}
+    th{font-size:13px;color:#475569;background:#f8fafc;position:sticky;top:0}
+    a{color:#1d4ed8}.titleLink{font-weight:700;text-decoration:none}.titleLink:hover{text-decoration:underline}
+    .tabs{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+    .tab{padding:9px 13px;border-radius:999px;border:1px solid #dbe3f0;background:#fff;color:#334155;font-weight:800;cursor:pointer}
+    .tab.active{background:#2563eb;color:#fff;border-color:#2563eb}
+    .panel{display:none}.panel.active{display:block}
+    .mobileCard{display:none}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    @media (max-width:760px){
+      .stats{grid-template-columns:repeat(2,1fr)}
+      .tblWrap{display:none}
+      .mobileCard{display:block}
+      .mobileItem{border:1px solid #e6ebf3;border-radius:14px;padding:12px;margin-bottom:10px;background:#fff}
+      .mobileItem .t{font-weight:800;margin-bottom:8px}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>科研系统 v2</h1>
+    <p>在 v1 基础上新增 Excel 数据分析模块：支持上传 Excel / CSV、字段识别、数值列统计、分组汇总、分析提示词与结果预览。</p>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2>项目首页 / 多项目管理</h2>
+        <div class="sub">可建立多个课题项目，支持保存、切换、覆盖更新与删除，适合长期维护多个研究方向。</div>
+
+        <label for="projectManagerName">当前项目名</label>
+        <input id="projectManagerName" placeholder="例如：新生儿胆汁淤积课题" />
+
+        <div class="btns">
+          <button class="primary" onclick="saveAsManagedProject()">新建/另存项目</button>
+          <button class="soft" onclick="updateManagedProject()">覆盖当前项目</button>
+          <button class="soft" onclick="refreshProjectList()">刷新项目列表</button>
+          <button class="danger" onclick="deleteManagedProject()">删除当前项目</button>
+        </div>
+
+        <div class="section">
+          <h3>项目列表</h3>
+          <div id="projectListBox" class="box small">暂无项目。</div>
+        </div>
+
+        <div class="section">
+          <h3>项目首页预览</h3>
+          <div id="projectDashboardBox" class="box small">保存项目后，这里会显示项目摘要、关键词和备注概览。</div>
+        </div>
+      </div>
+
+
+      <div class="card">
+        <h2>研究项目设置</h2>
+        <div class="sub">文献、写作、数据分析全部围绕同一个项目主题运行。</div>
+
+        <label for="projectName">项目名称</label>
+        <input id="projectName" placeholder="例如：新生儿胆汁淤积基因研究" />
+
+        <label for="projectTemplate">项目模板</label>
+        <select id="projectTemplate">
+          <option value="">通用科研模板</option>
+          <option value="bile_acid">胆汁酸 / 胆汁淤积模板</option>
+          <option value="thyroid">甲状腺门诊模板</option>
+          <option value="neonatal">新生儿 / 早产儿模板</option>
+          <option value="genetics">基因变异分析模板</option>
+          <option value="custom">自定义空白模板</option>
+        </select>
+
+        <div class="btns" style="margin-top:8px">
+          <button class="soft" onclick="applyProjectTemplate()">套用模板</button>
+          <button class="soft" onclick="previewTemplate()">查看模板说明</button>
+        </div>
+
+        <div id="templatePreviewBox" class="box small" style="margin-top:10px">选择模板后可查看该模板的推荐关键词、项目备注、分析重点与写作方向。</div>
+
+        <label for="keyword">关键词 / 标题 / DOI</label>
+        <textarea id="keyword" placeholder="例如：neonatal cholestasis SLC10A1 UGT1A1 或完整文章标题 / DOI"></textarea>
+
+        <div class="row">
+          <div>
+            <label for="yearFrom">起始年份</label>
+            <input id="yearFrom" placeholder="例如：2020" />
+          </div>
+          <div>
+            <label for="limit">抓取数量</label>
+            <select id="limit">
+              <option>20</option>
+              <option>40</option>
+              <option selected>60</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="mode">模式</label>
+        <select id="mode">
+          <option value="pdf" selected>PDF 强化</option>
+          <option value="title">精确标题</option>
+          <option value="smart">智能检索</option>
+          <option value="review">综述模式</option>
+          <option value="gene">基因模式</option>
+        </select>
+
+        <label for="emailForApi">邮箱（用于 Unpaywall / NCBI）</label>
+        <input id="emailForApi" placeholder="you@example.com" />
+
+        <div class="btns">
+          <button class="primary" onclick="runAll()">开始科研流程</button>
+          <button class="light" onclick="fillDemo()">填入示例</button>
+          <button class="soft" onclick="saveWorkspace()">保存项目</button>
+          <button class="soft" onclick="loadWorkspace()">读取项目</button>
+          <button class="danger" onclick="clearLocalData()">清除本地数据</button>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="n">文献</div><div class="t">检索与 PDF</div></div>
+          <div class="stat"><div class="n">写作</div><div class="t">综述 / 前言 / 讨论</div></div>
+          <div class="stat"><div class="n">Excel</div><div class="t">上传与分析</div></div>
+          <div class="stat"><div class="n">CSV</div><div class="t">结果导出</div></div>
+        </div>
+      </div>
+
+      <div class="card section">
+        <h2>Excel 数据分析模块</h2>
+        <div class="sub">支持上传 xlsx / xls / csv。浏览器会在本地解析，不上传到服务器。</div>
+
+        <label for="excelFile">上传文件</label>
+        <input id="excelFile" type="file" accept=".xlsx,.xls,.csv" />
+
+        <div class="row">
+          <div>
+            <label for="sheetSelect">工作表</label>
+            <select id="sheetSelect"></select>
+          </div>
+          <div>
+            <label for="groupColSelect">分组列</label>
+            <select id="groupColSelect"></select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="numericColSelect">数值列</label>
+            <select id="numericColSelect"></select>
+          </div>
+          <div>
+            <label for="previewRows">预览行数</label>
+            <select id="previewRows">
+              <option>10</option>
+              <option selected>20</option>
+              <option>50</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btns">
+          <button class="primary" onclick="analyzeCurrentSheet()">分析当前表</button>
+          <button class="soft" onclick="exportDataSummary()">导出分析摘要</button>
+          <button class="soft" onclick="copyText('dataAnalysisPrompt')">复制分析提示词</button>
+        </div>
+      </div>
+
+      <div class="card section">
+        <h2>项目笔记</h2>
+        <div class="sub">记录课题结构、统计想法与提醒。</div>
+        <textarea id="projectNotes" placeholder="例如：重点关注 SLC10A1 与 UGT1A1 双诊断、胆汁酸通路与胆红素代谢交叉..."></textarea>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>科研工作台</h2>
+        <div class="sub">文献、写作和 Excel 数据分析统一在一个页面里。</div>
+
+        <div class="box">
+          <div class="small">最佳检索词</div>
+          <div id="bestQuery" class="big">—</div>
+        </div>
+
+        <div class="toolbar">
+          <span class="chip ok" id="countChip">文献数：0</span>
+          <span class="chip ok" id="oaChip">开放获取：0</span>
+          <span class="chip ok" id="doiChip">DOI：0</span>
+          <span class="chip warn" id="statusChip">待开始</span>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active" onclick="showTab('search', this)">文献检索</div>
+          <div class="tab" onclick="showTab('review', this)">综述生成</div>
+          <div class="tab" onclick="showTab('intro', this)">前言生成</div>
+          <div class="tab" onclick="showTab('discussion', this)">讨论扩写</div>
+          <div class="tab" onclick="showTab('refs', this)">参考文献</div>
+          <div class="tab" onclick="showTab('excel', this)">Excel 分析</div>
+          <div class="tab" onclick="showTab('report', this)">Word 报告</div>
+        </div>
+
+        <div id="panel-search" class="panel active">
+          <div class="section">
+            <h2 style="font-size:18px">平台入口</h2>
+            <div id="linksBox">生成后显示。</div>
+          </div>
+
+          <div class="section">
+            <h2 style="font-size:18px">筛选</h2>
+            <div class="pillrow">
+              <span class="pill active" onclick="applyFilterMode('all', this)">全部</span>
+              <span class="pill" onclick="applyFilterMode('pdfFirst', this)">优先看有 PDF</span>
+              <span class="pill" onclick="applyFilterMode('oaOnly', this)">只看 OA</span>
+              <span class="pill" onclick="applyFilterMode('doiOnly', this)">只看 DOI</span>
+            </div>
+            <div class="toolbar">
+              <span class="chip ok yearBtn active" onclick="filterByYear('all', this)">全部</span>
+              <span class="chip ok yearBtn" onclick="filterByYear('5', this)">近5年</span>
+              <span class="chip ok yearBtn" onclick="filterByYear('5-10', this)">5–10年</span>
+              <span class="chip ok yearBtn" onclick="filterByYear('10+', this)">10年以上</span>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2 style="font-size:18px">文献列表</h2>
+            <div class="tblWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:52px">序号</th>
+                    <th>标题</th>
+                    <th style="width:90px">来源</th>
+                    <th style="width:90px">年份</th>
+                    <th style="width:160px">期刊</th>
+                    <th style="width:110px">PDF状态</th>
+                    <th style="width:220px">访问</th>
+                  </tr>
+                </thead>
+                <tbody id="paperBody">
+                  <tr><td colspan="7" class="muted">等待抓取。</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="mobileCard" id="mobileCards"><div class="muted">等待抓取。</div></div>
+          </div>
+        </div>
+
+        <div id="panel-review" class="panel">
+          <h2 style="font-size:18px">综述生成器</h2>
+          <div id="reviewPrompt" class="box small">开始科研流程后，这里会自动生成综述写作提示词。</div>
+          <div class="btns"><button class="soft" onclick="copyText('reviewPrompt')">复制综述提示词</button></div>
+        </div>
+
+        <div id="panel-intro" class="panel">
+          <h2 style="font-size:18px">前言生成器</h2>
+          <div id="introDraft" class="box small">开始科研流程后，这里会自动生成前言写作框架。</div>
+          <div class="btns"><button class="soft" onclick="copyText('introDraft')">复制前言框架</button></div>
+        </div>
+
+        <div id="panel-discussion" class="panel">
+          <h2 style="font-size:18px">讨论扩写器</h2>
+          <div id="discussionDraft" class="box small">开始科研流程后，这里会自动生成讨论部分扩写提示词。</div>
+          <div class="btns"><button class="soft" onclick="copyText('discussionDraft')">复制讨论提示词</button></div>
+        </div>
+
+        <div id="panel-refs" class="panel">
+          <h2 style="font-size:18px">参考文献整理</h2>
+          <div id="refsBox" class="box small">开始科研流程后，这里会自动生成 Vancouver 风格参考文献。</div>
+          <div class="btns">
+            <button class="soft" onclick="copyText('refsBox')">复制参考文献</button>
+            <button class="soft" onclick="exportCSV()">导出文献 CSV</button>
+          </div>
+        </div>
+
+        <div id="panel-excel" class="panel">
+          <h2 style="font-size:18px">Excel 数据分析</h2>
+          <div class="section">
+            <h3>数据概览</h3>
+            <div id="dataSummaryBox" class="box small">上传并分析文件后显示。</div>
+          </div>
+          <div class="section">
+            <h3>分组统计</h3>
+            <div id="groupSummaryBox" class="box small">选择分组列和数值列后显示。</div>
+          </div>
+          <div class="section">
+            <h3>分析提示词</h3>
+            <div id="dataAnalysisPrompt" class="box small">分析当前表后，这里会生成适合你继续统计和写结果段落的提示词。</div>
+          </div>
+          <div class="section">
+            <h3>自动图表模块</h3>
+            <div class="sub">支持柱状图、折线图、饼图、散点图。先上传数据，再选择分组列和数值列后生成。</div>
+
+            <div class="row">
+              <div>
+                <label for="chartTypeSelect">图表类型</label>
+                <select id="chartTypeSelect">
+                  <option value="bar">柱状图</option>
+                  <option value="line">折线图</option>
+                  <option value="pie">饼图</option>
+                  <option value="scatter">散点图</option>
+                </select>
+              </div>
+              <div>
+                <label for="xColSelect">X 轴 / 分类列</label>
+                <select id="xColSelect"></select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="yColSelect">Y 轴 / 数值列</label>
+                <select id="yColSelect"></select>
+              </div>
+              <div>
+                <label for="aggModeSelect">汇总方式</label>
+                <select id="aggModeSelect">
+                  <option value="mean">均值</option>
+                  <option value="sum">求和</option>
+                  <option value="count">计数</option>
+                  <option value="median">中位数</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="btns">
+              <button class="primary" onclick="generateChart()">生成图表</button>
+              <button class="soft" onclick="downloadChartPNG()">下载 PNG</button>
+              <button class="soft" onclick="copyText('chartInterpretationBox')">复制图表解读</button>
+            </div>
+
+            <div class="section">
+              <canvas id="analysisChart" style="max-width:100%;background:#fff;border:1px solid #e6ebf3;border-radius:14px;padding:8px"></canvas>
+            </div>
+
+            <div class="section">
+              <h3>图表解读</h3>
+              <div id="chartInterpretationBox" class="box small">生成图表后，这里会自动给出图表解读提示。</div>
+            </div>
+
+            <div class="section">
+              <h3>自动统计检验模块</h3>
+              <div class="sub">支持两组比较、多组比较与分类变量关联分析。基于浏览器本地计算。</div>
+
+              <div class="row">
+                <div>
+                  <label for="testTypeSelect">检验类型</label>
+                  <select id="testTypeSelect">
+                    <option value="ttest">两组均值比较（t 检验）</option>
+                    <option value="anova">多组均值比较（单因素 ANOVA）</option>
+                    <option value="chisq">分类变量关联（卡方检验）</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="testGroupColSelect">分组列</label>
+                  <select id="testGroupColSelect"></select>
+                </div>
+              </div>
+
+              <div class="row">
+                <div>
+                  <label for="testValueColSelect">数值列 / 分类列</label>
+                  <select id="testValueColSelect"></select>
+                </div>
+                <div>
+                  <label for="testSecondCatColSelect">第二分类列（仅卡方）</label>
+                  <select id="testSecondCatColSelect"></select>
+                </div>
+              </div>
+
+              <div class="btns">
+                <button class="primary" onclick="runStatTest()">运行统计检验</button>
+                <button class="soft" onclick="copyText('statResultBox')">复制统计结果</button>
+                <button class="soft" onclick="copyText('statInterpretationBox')">复制统计解释</button>
+              </div>
+
+              <div class="section">
+                <h3>统计结果</h3>
+                <div id="statResultBox" class="box small">运行统计检验后，这里会显示统计结果。</div>
+              </div>
+
+              <div class="section">
+                <h3>统计解释</h3>
+                <div id="statInterpretationBox" class="box small">运行统计检验后，这里会生成论文写作式解释。</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3>数据预览</h3>
+            <div class="tblWrap">
+              <table>
+                <thead id="excelPreviewHead"></thead>
+                <tbody id="excelPreviewBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="panel-report" class="panel">
+          <h2 style="font-size:18px">自动 Word / 报告导出</h2>
+          <div class="sub">把当前项目的文献检索、PDF 结果、写作提示、统计结果和 Excel 分析摘要整合成报告并导出为 Word。</div>
+
+          <div class="row">
+            <div>
+              <label for="reportTitle">报告标题</label>
+              <input id="reportTitle" placeholder="例如：新生儿胆汁淤积课题阶段性研究报告" />
+            </div>
+            <div>
+              <label for="authorName">作者 / 课题负责人</label>
+              <input id="authorName" placeholder="例如：Song" />
+            </div>
+          </div>
+
+          <label for="reportAbstract">报告摘要 / 备注</label>
+          <textarea id="reportAbstract" placeholder="可填写这次导出的重点，例如：用于组会汇报、课题立项草稿、论文初稿准备。"></textarea>
+
+          <div class="btns">
+            <button class="primary" onclick="exportWordReport()">导出 Word 报告</button>
+            <button class="light" onclick="oneClickLinkedExport()">一键联动导出</button>
+            <button class="soft" onclick="buildReportPreview()">刷新报告预览</button>
+            <button class="soft" onclick="copyText('reportPreviewBox')">复制报告预览</button>
+          </div>
+
+          <div class="section">
+            <h3>联动导出状态</h3>
+            <div id="linkedExportStatusBox" class="box small">点击“一键联动导出”后，这里会显示导出进度与内容摘要。</div>
+          </div>
+
+          <div class="section">
+            <h3>报告预览</h3>
+            <div id="reportPreviewBox" class="box small">点击“刷新报告预览”后，这里会显示将导出的报告结构。</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const WS_KEY = "research_system_v2_workspace";
+const EMAIL_KEY = "research_system_v2_email";
+
+const groupedPlatforms = {
+  "📊 核心数据库": [
+    ["OpenAlex", q => `https://openalex.org/works?search=${q}`],
+    ["Google Scholar", q => `https://scholar.google.com/scholar?q=${q}`],
+    ["PubMed", q => `https://pubmed.ncbi.nlm.nih.gov/?term=${q}`],
+    ["PMC", q => `https://pmc.ncbi.nlm.nih.gov/?term=${q}`],
+    ["Semantic Scholar", q => `https://www.semanticscholar.org/search?q=${q}`],
+    ["Crossref", q => `https://search.crossref.org/?q=${q}`],
+    ["Web of Science", q => `https://www.webofscience.com/wos/woscc/basic-search?search_mode=GeneralSearch&value(input1)=${q}`],
+    ["Scopus", q => `https://www.scopus.com/results/results.uri?sort=plf-f&src=s&st1=${q}`],
+    ["Europe PMC", q => `https://europepmc.org/search?query=${q}`]
+  ],
+  "📄 PDF / 开放获取": [
+    ["Google PDF", q => `https://www.google.com/search?q=${q}%20pdf`],
+    ["精确标题 + PDF", q => `https://www.google.com/search?q=%22${q}%22%20pdf`],
+    ["CORE", q => `https://core.ac.uk/search?q=${q}`],
+    ["BASE", q => `https://www.base-search.net/Search/Results?lookfor=${q}`],
+    ["ResearchGate", q => `https://www.google.com/search?q=${encodeURIComponent('"' + decodeURIComponent(q) + '" site:researchgate.net')}`]
+  ]
+};
+
+let allPapers = [];
+let currentResults = [];
+let currentFilterMode = "all";
+let workbook = null;
+let currentSheetName = "";
+let currentSheetRows = [];
+
+function esc(s){ return (s||"").replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+function enc(s){ return encodeURIComponent(s.trim()); }
+function norm(s){ return (s||"").replace(/\s+/g," ").trim(); }
+function isLikelyDOI(s){ return /^10\.\S+\/\S+$/i.test((s||"").trim()) || /^https?:\/\/doi\.org\/10\./i.test((s||"").trim()); }
+function cleanDOI(s){ return (s||"").replace(/^https?:\/\/doi\.org\//i,'').trim(); }
+function setStatus(text, cls){ const el=document.getElementById("statusChip"); el.textContent=text; el.className=`chip ${cls}`; }
+
+function makeQuery(keyword, mode, yearFrom){
+  const k = norm(keyword); let q = k;
+  if(mode === "review") q = `${k} review OR systematic review`;
+  if(mode === "gene") q = `${k} variant OR mutation OR genotype OR phenotype`;
+  if(mode === "title") q = `"${k}"`;
+  if(mode === "pdf") q = isLikelyDOI(k) ? cleanDOI(k) : `"${k}" pdf`;
+  if(yearFrom && !isLikelyDOI(k)) q += ` from ${yearFrom}`;
+  return q.trim();
+}
+
+function renderGroupedLinks(query){
+  const q = enc(query);
+  let html = "";
+  Object.entries(groupedPlatforms).forEach(([group, items]) => {
+    html += `<div class="group"><h3>${group}</h3><div class="groupLinks small">`;
+    html += items.map(p=>`<a target="_blank" href="${p[1](q)}">${p[0]}</a>`).join(" ｜ ");
+    html += `</div></div>`;
+  });
+  document.getElementById("linksBox").innerHTML = html;
+}
+
+function formatAuthors(arr){
+  if(!arr || !arr.length) return "";
+  return arr.slice(0,6).map(a=>{
+    if(typeof a === "string") return a;
+    if(a.author && a.author.display_name) return a.author.display_name;
+    if(a.name) return a.name;
+    return "";
+  }).filter(Boolean).join(", ") + (arr.length>6 ? ", et al" : "");
+}
+function vancouverRef(item, idx){
+  const authors = formatAuthors(item.authors) || "Unknown";
+  const year = item.year || "";
+  const title = item.title || "Untitled";
+  const journal = item.journal || "";
+  const doi = item.doi ? item.doi.replace(/^https?:\/\/doi\.org\//,'') : "";
+  return `${idx+1}. ${authors}. ${title}. ${journal}. ${year}.${doi ? " doi:"+doi+"." : ""}`;
+}
+
+function generateWritingBlocks(project, keyword, notes, items){
+  const top = items.slice(0,8).map((x,i)=>`${i+1}. ${x.title} (${x.year || 'n.d.'})`).join("\n");
+  document.getElementById("reviewPrompt").textContent =
+`请基于项目“${project || '未命名项目'}”与主题“${keyword}”撰写综述草稿。
+
+研究备注：
+${notes || '无'}
+
+代表性文献：
+${top || '暂无'}
+
+请输出：
+1. 研究背景
+2. 现有证据总结
+3. 关键机制与通路
+4. 争议点
+5. 未来研究方向
+6. 可直接用于论文前言与综述的正式段落`;
+
+  document.getElementById("introDraft").textContent =
+`前言写作框架（项目：${project || '未命名项目'}）
+
+第一段：疾病或研究主题的重要性与临床负担
+第二段：当前机制认识与关键分子/通路
+第三段：现有研究空白与争议
+第四段：本研究关注的问题、创新点与意义
+
+建议重点词：
+${keyword}
+
+建议融入的项目备注：
+${notes || '无'}`;
+
+  document.getElementById("discussionDraft").textContent =
+`讨论部分扩写提示词（项目：${project || '未命名项目'}）
+
+请围绕以下结构扩写讨论：
+1. 主要发现总结
+2. 与既往研究一致或不一致之处
+3. 可能机制解释
+4. 临床或生物学意义
+5. 研究优势
+6. 研究局限
+7. 未来方向
+
+本研究主题：
+${keyword}
+
+项目备注：
+${notes || '无'}`;
+}
+
+function updateStats(items){
+  const oa = items.filter(x=>x.oaPdf || x.pdf).length;
+  const doi = items.filter(x=>x.doi).length;
+  document.getElementById("countChip").textContent = `文献数：${items.length}`;
+  document.getElementById("oaChip").textContent = `开放获取：${oa}`;
+  document.getElementById("doiChip").textContent = `DOI：${doi}`;
+}
+
+function pdfStateBadge(x){
+  if(x.oaPdf) return '<span class="chip ok">OA PDF</span>';
+  if(x.pdf) return '<span class="chip ok">PDF</span>';
+  if(x.doi) return '<span class="chip warn">有 DOI</span>';
+  return '<span class="chip bad">未找到</span>';
+}
+function accessLinks(x){
+  const links = [];
+  if(x.oaPdf) links.push(`<a target="_blank" href="${x.oaPdf}">OA PDF</a>`);
+  else if(x.pdf) links.push(`<a target="_blank" href="${x.pdf}">PDF</a>`);
+  if(x.pmidUrl) links.push(`<a target="_blank" href="${x.pmidUrl}">PubMed</a>`);
+  if(x.pmc) links.push(`<a target="_blank" href="${x.pmc}">PMC</a>`);
+  if(x.doi) links.push(`<a target="_blank" href="${x.doi}">DOI</a>`);
+  links.push(`<a target="_blank" href="https://www.google.com/search?q=${encodeURIComponent((x.title || '') + ' pdf')}">Google PDF</a>`);
+  return links.join(" | ");
+}
+function renderPapers(items){
+  const body = document.getElementById("paperBody");
+  const cards = document.getElementById("mobileCards");
+  if(!items.length){
+    body.innerHTML = '<tr><td colspan="7" class="muted">没有抓到结果。可调整关键词、标题或 DOI 后重试。</td></tr>';
+    cards.innerHTML = '<div class="muted">没有抓到结果。可调整关键词、标题或 DOI 后重试。</div>';
+    return;
+  }
+  body.innerHTML = items.map((x,i)=>{
+    const link = x.oaPdf || x.pdf || x.doi || x.landing || x.pmidUrl || "#";
+    return `<tr>
+      <td>${i+1}</td>
+      <td><a class="titleLink" target="_blank" href="${link}">${esc(x.title || "Untitled")}</a><div class="small">${esc(formatAuthors(x.authors))}</div></td>
+      <td>${esc(x.source || "")}</td>
+      <td>${x.year || ""}</td>
+      <td>${esc(x.journal || "")}</td>
+      <td>${pdfStateBadge(x)}</td>
+      <td>${accessLinks(x)}</td>
+    </tr>`;
+  }).join("");
+  cards.innerHTML = items.map((x,i)=>{
+    const link = x.oaPdf || x.pdf || x.doi || x.landing || x.pmidUrl || "#";
+    return `<div class="mobileItem">
+      <div class="t"><a class="titleLink" target="_blank" href="${link}">${i+1}. ${esc(x.title || "Untitled")}</a></div>
+      <div class="small">${esc(formatAuthors(x.authors))}</div>
+      <div class="small">来源：${esc(x.source || "")} ｜ 年份：${x.year || ""} ｜ 期刊：${esc(x.journal || "")}</div>
+      <div style="margin-top:8px">${pdfStateBadge(x)}</div>
+      <div class="small" style="margin-top:6px">${accessLinks(x)}</div>
+    </div>`;
+  }).join("");
+}
+function renderRefs(items){
+  document.getElementById("refsBox").textContent = items.map((x,i)=>vancouverRef(x,i)).join("\n") || "暂无。";
+}
+
+function setYearBtnActive(el){ document.querySelectorAll('.yearBtn').forEach(b => b.classList.remove('active')); if(el) el.classList.add('active'); }
+function applyYearFilter(items, type){
+  const now = new Date().getFullYear();
+  return (items || []).filter(x => {
+    const y = x.year || 0;
+    if(type === "5") return y >= now - 5;
+    if(type === "5-10") return y < now - 5 && y >= now - 10;
+    if(type === "10+") return y < now - 10;
+    return true;
+  });
+}
+function applySecondaryFilter(items){
+  if(currentFilterMode === "pdfFirst") return items.filter(x => x.oaPdf || x.pdf);
+  if(currentFilterMode === "oaOnly") return items.filter(x => x.oaPdf);
+  if(currentFilterMode === "doiOnly") return items.filter(x => x.doi);
+  return items;
+}
+function rerenderFromAll(){
+  const activeYear = document.querySelector('.yearBtn.active');
+  let type = 'all';
+  if(activeYear){
+    const txt = activeYear.textContent.trim();
+    if(txt === '近5年') type = '5';
+    else if(txt === '5–10年') type = '5-10';
+    else if(txt === '10年以上') type = '10+';
+  }
+  let filtered = applyYearFilter(allPapers, type);
+  filtered = applySecondaryFilter(filtered);
+  currentResults = filtered;
+  renderPapers(filtered);
+  renderRefs(filtered);
+  updateStats(filtered);
+}
+function filterByYear(type, el){ setYearBtnActive(el); rerenderFromAll(); }
+function applyFilterMode(mode, el){
+  currentFilterMode = mode;
+  document.querySelectorAll('.pillrow .pill').forEach(p => p.classList.remove('active'));
+  if(el) el.classList.add('active');
+  rerenderFromAll();
+}
+
+async function enrichUnpaywall(items, email){
+  if(!email) return items;
+  const subset = items.filter(x => x.doi).slice(0, 25);
+  const doiMap = new Map();
+  await Promise.all(subset.map(async item => {
+    try{
+      const api = `https://api.unpaywall.org/v2/${encodeURIComponent(cleanDOI(item.doi))}?email=${encodeURIComponent(email)}`;
+      const res = await fetch(api);
+      if(!res.ok) return;
+      const data = await res.json();
+      doiMap.set(item.doi, {oaPdf: data?.best_oa_location?.url_for_pdf || ""});
+    }catch(e){}
+  }));
+  return items.map(x => doiMap.has(x.doi) ? {...x, oaPdf: doiMap.get(x.doi).oaPdf || x.oaPdf || ""} : x);
+}
+async function fetchOpenAlex(query, limit, yearFrom){
+  let results = [], page = 1, perPage = Math.min(25, limit);
+  while(results.length < limit){
+    let api = `https://api.openalex.org/works?search=${enc(query)}&per-page=${perPage}&page=${page}&mailto=example@example.com`;
+    if(yearFrom && !isLikelyDOI(query)) api += `&filter=from_publication_date:${yearFrom}-01-01`;
+    const res = await fetch(api);
+    if(!res.ok) throw new Error("OpenAlex 请求失败");
+    const data = await res.json();
+    const chunk = (data.results || []).map(x => ({
+      source:"OpenAlex", title:x.title || "", authors:x.authorships || [], year:x.publication_year || "",
+      journal:x.primary_location?.source?.display_name || "", doi:x.doi || "", landing:x.id || "",
+      pdf:x.best_oa_location?.pdf_url || x.primary_location?.pdf_url || "", oaPdf:x.best_oa_location?.pdf_url || "",
+      pmc:x.primary_location?.landing_page_url?.includes("pmc.ncbi.nlm.nih.gov") ? x.primary_location.landing_page_url : "", pmidUrl:""
+    }));
+    results = results.concat(chunk);
+    if(!chunk.length || !data.meta || results.length >= data.meta.count || page > 10) break;
+    page += 1;
+  }
+  return results.slice(0, limit);
+}
+async function fetchPubMed(query, limit){
+  let esearch = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=${limit}&term=${enc(query)}`;
+  const sRes = await fetch(esearch);
+  if(!sRes.ok) return [];
+  const sData = await sRes.json();
+  const ids = sData?.esearchresult?.idlist || [];
+  if(!ids.length) return [];
+  const sumUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=${ids.join(",")}`;
+  const sumRes = await fetch(sumUrl);
+  if(!sumRes.ok) return [];
+  const sumData = await sumRes.json();
+  const out = [];
+  ids.forEach(id => {
+    const x = sumData?.result?.[id];
+    if(!x) return;
+    const articleIds = x.articleids || [];
+    const doiObj = articleIds.find(a => String(a.idtype).toLowerCase() === "doi");
+    const pmcObj = articleIds.find(a => String(a.idtype).toLowerCase() === "pmc");
+    out.push({
+      source:"PubMed", title:x.title || "", authors:(x.authors || []).map(a => ({name:a.name || ""})),
+      year:parseInt((x.pubdate || "").match(/\d{4}/)?.[0] || "") || "", journal:x.fulljournalname || x.source || "",
+      doi:doiObj ? `https://doi.org/${doiObj.value}` : "", landing:"", pdf:"", oaPdf:"",
+      pmc:pmcObj ? `https://pmc.ncbi.nlm.nih.gov/articles/${pmcObj.value}/` : "", pmidUrl:`https://pubmed.ncbi.nlm.nih.gov/${id}/`
+    });
+  });
+  return out;
+}
+function mergeDedup(a, b){
+  const seen = new Set(); const out = [];
+  [...a, ...b].forEach(item => {
+    const key = item.doi || item.title;
+    if(!key || seen.has(key)) return;
+    seen.add(key); out.push(item);
+  });
+  return out;
+}
+function summarizePdf(items, rawQuery){
+  const direct = items.find(x => x.oaPdf) || items.find(x => x.pdf);
+  const doi = items.find(x => x.doi);
+  const pmc = items.find(x => x.pmc);
+  const arr = [];
+  if(direct) arr.push(`<div><span class="chip ok">优先路径</span> <a target="_blank" href="${direct.oaPdf || direct.pdf}">直接打开 PDF</a></div>`);
+  else arr.push(`<div><span class="chip bad">当前未找到直接 PDF</span></div>`);
+  if(doi) arr.push(`<div style="margin-top:8px"><span class="chip warn">后备 1</span> <a target="_blank" href="${doi.doi}">DOI 页面</a></div>`);
+  if(pmc) arr.push(`<div style="margin-top:8px"><span class="chip ok">后备 2</span> <a target="_blank" href="${pmc.pmc}">PMC 页面</a></div>`);
+  arr.push(`<div style="margin-top:8px"><span class="chip warn">后备 3</span> <a target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(rawQuery + ' pdf')}">Google PDF 搜索</a></div>`);
+  document.getElementById("pdfSummary").innerHTML = arr.join("");
+}
+async function runAll(){
+  const project = norm(document.getElementById("projectName").value);
+  const keyword = norm(document.getElementById("keyword").value);
+  const yearFrom = norm(document.getElementById("yearFrom").value);
+  const limit = parseInt(document.getElementById("limit").value,10) || 60;
+  const mode = document.getElementById("mode").value;
+  const email = norm(document.getElementById("emailForApi").value);
+  const notes = norm(document.getElementById("projectNotes").value);
+  if(!keyword){ alert("请先输入关键词、标题或 DOI。"); return; }
+
+  localStorage.setItem(EMAIL_KEY, email);
+  const query = makeQuery(keyword, mode, yearFrom);
+  document.getElementById("bestQuery").textContent = query;
+  renderGroupedLinks(query);
+  setStatus("抓取中","warn");
+  document.getElementById("paperBody").innerHTML = '<tr><td colspan="7" class="muted">正在抓取数据，请稍候…</td></tr>';
+
+  try{
+    const [oa, pm] = await Promise.all([fetchOpenAlex(query, limit, yearFrom), fetchPubMed(query, Math.min(limit, 30))]);
+    let merged = mergeDedup(oa, pm).slice(0, limit);
+    merged = await enrichUnpaywall(merged, email);
+    allPapers = merged; currentResults = merged; currentFilterMode = "all";
+    document.querySelectorAll('.pillrow .pill').forEach((p,idx)=>p.classList.toggle('active', idx===0));
+    document.querySelectorAll('.yearBtn').forEach((p,idx)=>p.classList.toggle('active', idx===0));
+    rerenderFromAll();
+    summarizePdf(merged, keyword);
+    generateWritingBlocks(project, keyword, notes, merged);
+    setStatus("完成","ok");
+  }catch(err){
+    setStatus("失败","warn");
+    document.getElementById("paperBody").innerHTML = `<tr><td colspan="7" class="muted">抓取失败：${esc(err.message)}</td></tr>`;
+    document.getElementById("pdfSummary").innerHTML = `<span class="chip bad">失败</span> ${esc(err.message)}`;
+  }
+}
+
+function saveWorkspace(){
+  const data = {
+    projectName: document.getElementById("projectName").value,
+    keyword: document.getElementById("keyword").value,
+    yearFrom: document.getElementById("yearFrom").value,
+    limit: document.getElementById("limit").value,
+    mode: document.getElementById("mode").value,
+    email: document.getElementById("emailForApi").value,
+    notes: document.getElementById("projectNotes").value
+  };
+  localStorage.setItem(WS_KEY, JSON.stringify(data));
+  alert("项目已保存。");
+}
+function loadWorkspace(){
+  const raw = localStorage.getItem(WS_KEY);
+  if(!raw){ alert("暂无已保存项目。"); return; }
+  const data = JSON.parse(raw);
+  document.getElementById("projectName").value = data.projectName || "";
+  document.getElementById("keyword").value = data.keyword || "";
+  document.getElementById("yearFrom").value = data.yearFrom || "";
+  document.getElementById("limit").value = data.limit || "60";
+  document.getElementById("mode").value = data.mode || "pdf";
+  document.getElementById("emailForApi").value = data.email || "";
+  document.getElementById("projectNotes").value = data.notes || "";
+  alert("项目已读取。");
+}
+function clearLocalData(){
+  [WS_KEY, EMAIL_KEY].forEach(k=>localStorage.removeItem(k));
+  alert("本地项目数据已清除。");
+}
+function fillDemo(){
+  document.getElementById("projectTemplate").value = "bile_acid";
+  document.getElementById("projectName").value = "新生儿胆汁淤积基因研究";
+  document.getElementById("keyword").value = "neonatal cholestasis SLC10A1 UGT1A1";
+  document.getElementById("yearFrom").value = "2020";
+  document.getElementById("limit").value = "40";
+  document.getElementById("mode").value = "gene";
+  document.getElementById("projectNotes").value = "重点关注胆汁酸转运、胆红素代谢交叉、双诊断与良性代谢表型。";
+}
+function copyText(id){
+  const txt = document.getElementById(id).textContent.trim();
+  if(!txt || txt === "暂无。"){ alert("当前没有可复制内容。"); return; }
+  navigator.clipboard.writeText(txt).then(()=>alert("已复制。"));
+}
+function showTab(name, el){
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+}
+function exportCSV(){
+  if(!currentResults.length){ alert("还没有文献可导出。"); return; }
+  const rows = [["No","Title","Authors","Source","Year","Journal","DOI","OA PDF","PDF","PMID URL","PMC"]];
+  currentResults.forEach((x,i)=>rows.push([i+1, x.title || "", formatAuthors(x.authors), x.source || "", x.year || "", x.journal || "", x.doi || "", x.oaPdf || "", x.pdf || "", x.pmidUrl || "", x.pmc || ""]));
+  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob(["\ufeff"+csv], {type:"text/csv;charset=utf-8;"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "research_system_v2_literature.csv";
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* Excel module */
+document.getElementById("excelFile").addEventListener("change", handleExcelUpload);
+document.getElementById("sheetSelect").addEventListener("change", () => loadSheetRows(document.getElementById("sheetSelect").value));
+
+async function handleExcelUpload(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const data = await file.arrayBuffer();
+  workbook = XLSX.read(data, {type: "array"});
+  const sheetSelect = document.getElementById("sheetSelect");
+  sheetSelect.innerHTML = workbook.SheetNames.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  currentSheetName = workbook.SheetNames[0] || "";
+  loadSheetRows(currentSheetName);
+  showTab('excel', document.querySelectorAll('.tab')[5]);
+}
+
+function loadSheetRows(sheetName){
+  if(!workbook || !sheetName) return;
+  currentSheetName = sheetName;
+  const ws = workbook.Sheets[sheetName];
+  currentSheetRows = XLSX.utils.sheet_to_json(ws, {defval: ""});
+  populateColumnSelectors();
+  populateChartSelectors();
+  populateStatSelectors();
+  renderExcelPreview();
+}
+
+function populateColumnSelectors(){
+  const cols = currentSheetRows.length ? Object.keys(currentSheetRows[0]) : [];
+  const groupSel = document.getElementById("groupColSelect");
+  const numSel = document.getElementById("numericColSelect");
+  groupSel.innerHTML = `<option value="">不分组</option>` + cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  numSel.innerHTML = `<option value="">自动选择</option>` + cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+}
+
+function guessNumericColumns(rows){
+  if(!rows.length) return [];
+  const cols = Object.keys(rows[0]);
+  return cols.filter(c => {
+    const vals = rows.map(r => r[c]).filter(v => v !== "" && v !== null && v !== undefined);
+    if(!vals.length) return false;
+    const numericCount = vals.filter(v => !isNaN(parseFloat(v)) && isFinite(v)).length;
+    return numericCount / vals.length >= 0.8;
+  });
+}
+
+function describeNumeric(values){
+  const nums = values.map(v => parseFloat(v)).filter(v => !isNaN(v));
+  if(!nums.length) return null;
+  nums.sort((a,b)=>a-b);
+  const mean = nums.reduce((a,b)=>a+b,0)/nums.length;
+  const median = nums.length % 2 ? nums[(nums.length-1)/2] : (nums[nums.length/2-1]+nums[nums.length/2])/2;
+  return {
+    n: nums.length,
+    min: nums[0],
+    max: nums[nums.length-1],
+    mean: mean,
+    median: median
+  };
+}
+
+function renderExcelPreview(){
+  const head = document.getElementById("excelPreviewHead");
+  const body = document.getElementById("excelPreviewBody");
+  if(!currentSheetRows.length){
+    head.innerHTML = "";
+    body.innerHTML = `<tr><td class="muted">当前表无数据。</td></tr>`;
+    return;
+  }
+  const cols = Object.keys(currentSheetRows[0]);
+  head.innerHTML = `<tr>${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr>`;
+  const n = parseInt(document.getElementById("previewRows").value, 10) || 20;
+  body.innerHTML = currentSheetRows.slice(0, n).map(r => `<tr>${cols.map(c => `<td>${esc(String(r[c] ?? ""))}</td>`).join("")}</tr>`).join("");
+}
+
+function analyzeCurrentSheet(){
+  if(!currentSheetRows.length){
+    alert("请先上传并读取 Excel / CSV 文件。");
+    return;
+  }
+  const cols = Object.keys(currentSheetRows[0] || {});
+  const numCols = guessNumericColumns(currentSheetRows);
+  const selectedNum = document.getElementById("numericColSelect").value || (numCols[0] || "");
+  const selectedGroup = document.getElementById("groupColSelect").value || "";
+
+  let summary = [];
+  summary.push(`工作表：${currentSheetName}`);
+  summary.push(`总行数：${currentSheetRows.length}`);
+  summary.push(`字段数：${cols.length}`);
+  summary.push(`字段：${cols.join("、") || "无"}`);
+  summary.push(`推测数值列：${numCols.join("、") || "无"}`);
+
+  if(selectedNum){
+    const desc = describeNumeric(currentSheetRows.map(r => r[selectedNum]));
+    if(desc){
+      summary.push(`数值列“${selectedNum}”统计：n=${desc.n}，最小值=${desc.min}，最大值=${desc.max}，均值=${desc.mean.toFixed(2)}，中位数=${desc.median.toFixed(2)}`);
+    }
+  }
+
+  document.getElementById("dataSummaryBox").textContent = summary.join("\n");
+
+  if(selectedGroup){
+    const groups = {};
+    currentSheetRows.forEach(r => {
+      const g = String(r[selectedGroup] ?? "空值");
+      if(!groups[g]) groups[g] = [];
+      groups[g].push(r);
+    });
+
+    let groupText = [];
+    Object.entries(groups).forEach(([g, rows]) => {
+      groupText.push(`组别：${g}，例数：${rows.length}`);
+      if(selectedNum){
+        const desc = describeNumeric(rows.map(r => r[selectedNum]));
+        if(desc){
+          groupText.push(`  ${selectedNum}：均值=${desc.mean.toFixed(2)}，中位数=${desc.median.toFixed(2)}，范围=${desc.min}–${desc.max}`);
+        }
+      }
+    });
+    document.getElementById("groupSummaryBox").textContent = groupText.join("\n") || "当前分组无可显示结果。";
+  } else {
+    document.getElementById("groupSummaryBox").textContent = "未选择分组列。";
+  }
+
+  const project = norm(document.getElementById("projectName").value);
+  const notes = norm(document.getElementById("projectNotes").value);
+  document.getElementById("dataAnalysisPrompt").textContent =
+`请基于以下 Excel 数据概况，帮助我设计进一步分析并写结果段落。
+
+项目名称：${project || '未命名项目'}
+工作表：${currentSheetName}
+总行数：${currentSheetRows.length}
+字段：${cols.join("、")}
+推测数值列：${numCols.join("、") || '无'}
+分组列：${selectedGroup || '未选择'}
+重点数值列：${selectedNum || '未选择'}
+
+项目备注：
+${notes || '无'}
+
+请输出：
+1. 推荐的统计分析思路
+2. 适合做图的变量组合
+3. 可写入论文结果部分的段落框架
+4. 需要补充清洗或核对的数据点
+5. 若是基因/临床数据，建议如何做分层比较`;
+}
+
+function exportDataSummary(){
+  const text = [
+    document.getElementById("dataSummaryBox").textContent,
+    "",
+    document.getElementById("groupSummaryBox").textContent,
+    "",
+    document.getElementById("dataAnalysisPrompt").textContent
+  ].join("\n");
+  if(!text.trim()){
+    alert("还没有可导出的分析摘要。");
+    return;
+  }
+  const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "research_system_v2_data_summary.txt";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+document.getElementById("emailForApi").value = localStorage.getItem(EMAIL_KEY) || "";
+
+let analysisChart = null;
+
+function populateChartSelectors(){
+  const cols = currentSheetRows.length ? Object.keys(currentSheetRows[0]) : [];
+  const numericCols = guessNumericColumns(currentSheetRows);
+
+  const xSel = document.getElementById("xColSelect");
+  const ySel = document.getElementById("yColSelect");
+  if(xSel) xSel.innerHTML = `<option value="">自动选择</option>` + cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  if(ySel) ySel.innerHTML = `<option value="">自动选择</option>` + cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+
+  if(xSel && cols.length && !xSel.value) xSel.value = cols[0];
+  if(ySel && numericCols.length && !ySel.value) ySel.value = numericCols[0];
+}
+
+function median(nums){
+  const arr = nums.filter(v => !isNaN(v)).sort((a,b)=>a-b);
+  if(!arr.length) return NaN;
+  const m = Math.floor(arr.length/2);
+  return arr.length % 2 ? arr[m] : (arr[m-1] + arr[m]) / 2;
+}
+
+function aggregateValues(values, mode){
+  const nums = values.map(v => parseFloat(v)).filter(v => !isNaN(v));
+  if(mode === "count") return values.filter(v => v !== "" && v !== null && v !== undefined).length;
+  if(!nums.length) return NaN;
+  if(mode === "sum") return nums.reduce((a,b)=>a+b,0);
+  if(mode === "median") return median(nums);
+  return nums.reduce((a,b)=>a+b,0) / nums.length;
+}
+
+function prepareChartData(rows, xCol, yCol, chartType, aggMode){
+  if(!rows.length) return null;
+  const grouped = {};
+  rows.forEach(r => {
+    const key = xCol ? String(r[xCol] ?? "空值") : "全部";
+    if(!grouped[key]) grouped[key] = [];
+    grouped[key].push(yCol ? r[yCol] : 1);
+  });
+
+  let labels = Object.keys(grouped);
+  if(labels.length > 30 && chartType !== "scatter"){
+    labels = labels.slice(0, 30);
+  }
+
+  if(chartType === "scatter"){
+    const pts = rows
+      .map(r => ({x: parseFloat(r[xCol]), y: parseFloat(r[yCol])}))
+      .filter(p => !isNaN(p.x) && !isNaN(p.y))
+      .slice(0, 200);
+    return {labels: [], datasets: [{label: `${yCol} vs ${xCol}`, data: pts}]};
+  }
+
+  const data = labels.map(k => aggregateValues(grouped[k], aggMode));
+  return {labels, datasets: [{label: yCol || "计数", data}]};
+}
+
+function makeChartInterpretation(chartType, xCol, yCol, aggMode, chartData){
+  if(!chartData) return "当前数据不足以生成图表。";
+  if(chartType === "scatter"){
+    return `请基于散点图分析 ${xCol} 与 ${yCol} 的相关趋势、离群点和潜在线性关系，并判断是否需要进一步做相关性或回归分析。`;
+  }
+  const topIdx = chartData.datasets[0].data
+    .map((v,i)=>({v,i}))
+    .filter(o => !isNaN(o.v))
+    .sort((a,b)=>b.v-a.v)[0];
+  const topLabel = topIdx ? chartData.labels[topIdx.i] : "无";
+  const topValue = topIdx ? chartData.datasets[0].data[topIdx.i] : "无";
+  return `当前图表类型为${chartType}，X 轴为 ${xCol}，Y 轴为 ${yCol || "计数"}，汇总方式为${aggMode}。请重点关注不同组之间的差异趋势、最高值对应组别，以及是否存在明显分层。当前最高组别为 ${topLabel}，对应值为 ${topValue}。`;
+}
+
+function generateChart(){
+  if(!currentSheetRows.length){
+    alert("请先上传并读取 Excel / CSV 文件。");
+    return;
+  }
+  const chartType = document.getElementById("chartTypeSelect").value;
+  const cols = Object.keys(currentSheetRows[0] || {});
+  const numericCols = guessNumericColumns(currentSheetRows);
+
+  const xCol = document.getElementById("xColSelect").value || cols[0];
+  let yCol = document.getElementById("yColSelect").value || (numericCols[0] || "");
+  const aggMode = document.getElementById("aggModeSelect").value;
+
+  if(chartType !== "scatter" && !yCol && aggMode !== "count"){
+    alert("请至少选择一个数值列作为 Y 轴。");
+    return;
+  }
+  if(chartType === "pie" && !xCol){
+    alert("饼图需要选择一个分类列。");
+    return;
+  }
+  if(chartType === "scatter" && (!xCol || !yCol)){
+    alert("散点图需要同时选择 X 列和 Y 列。");
+    return;
+  }
+
+  const chartData = prepareChartData(currentSheetRows, xCol, yCol, chartType, aggMode);
+  const ctx = document.getElementById("analysisChart").getContext("2d");
+  if(analysisChart) analysisChart.destroy();
+
+  const config = {
+    type: chartType,
+    data: chartData,
+    options: {
+      responsive: true,
+      plugins: { legend: { display: true } },
+      scales: chartType === "pie" ? {} : { y: { beginAtZero: true } }
+    }
+  };
+  analysisChart = new Chart(ctx, config);
+
+  document.getElementById("chartInterpretationBox").textContent =
+    makeChartInterpretation(chartType, xCol, yCol || "计数", aggMode, chartData);
+}
+
+function downloadChartPNG(){
+  if(!analysisChart){
+    alert("请先生成图表。");
+    return;
+  }
+  const a = document.createElement("a");
+  a.href = analysisChart.toBase64Image();
+  a.download = "research_system_chart.png";
+  a.click();
+}
+
+
+function populateStatSelectors(){
+  const cols = currentSheetRows.length ? Object.keys(currentSheetRows[0]) : [];
+  const numCols = guessNumericColumns(currentSheetRows);
+  const groupSel = document.getElementById("testGroupColSelect");
+  const valSel = document.getElementById("testValueColSelect");
+  const secondSel = document.getElementById("testSecondCatColSelect");
+  if(groupSel) groupSel.innerHTML = `<option value="">自动选择</option>` + cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  if(valSel) valSel.innerHTML = `<option value="">自动选择</option>` + cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  if(secondSel) secondSel.innerHTML = `<option value="">不选择</option>` + cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  if(groupSel && cols.length && !groupSel.value) groupSel.value = cols[0];
+  if(valSel && numCols.length && !valSel.value) valSel.value = numCols[0];
+}
+
+function mean(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length; }
+function variance(arr){
+  if(arr.length < 2) return NaN;
+  const m = mean(arr);
+  return arr.reduce((s,x)=>s+(x-m)*(x-m),0)/(arr.length-1);
+}
+function formatP(p){
+  if(isNaN(p)) return "NA";
+  if(p < 0.001) return "<0.001";
+  return p.toFixed(4);
+}
+
+function tTestTwoSample(a, b){
+  const x = a.filter(v => !isNaN(v));
+  const y = b.filter(v => !isNaN(v));
+  if(x.length < 2 || y.length < 2) return null;
+  const mx = mean(x), my = mean(y);
+  const vx = variance(x), vy = variance(y);
+  const nx = x.length, ny = y.length;
+  const se = Math.sqrt(vx/nx + vy/ny);
+  const t = (mx - my) / se;
+  const df_num = Math.pow(vx/nx + vy/ny, 2);
+  const df_den = (Math.pow(vx/nx,2)/(nx-1)) + (Math.pow(vy/ny,2)/(ny-1));
+  const df = df_num / df_den;
+  const p = 2 * (1 - jStat.studentt.cdf(Math.abs(t), df));
+  return {t, df, p, mx, my, nx, ny};
+}
+
+function anovaOneWay(groups){
+  const validGroups = Object.entries(groups).map(([k,v]) => [k, v.filter(x => !isNaN(x))]).filter(([_,v]) => v.length >= 2);
+  if(validGroups.length < 2) return null;
+  const all = validGroups.flatMap(([_,v]) => v);
+  const grandMean = mean(all);
+  let ssBetween = 0, ssWithin = 0, nTotal = 0;
+  validGroups.forEach(([k, vals]) => {
+    const m = mean(vals);
+    ssBetween += vals.length * Math.pow(m - grandMean, 2);
+    ssWithin += vals.reduce((s,x)=>s+Math.pow(x-m,2),0);
+    nTotal += vals.length;
+  });
+  const dfBetween = validGroups.length - 1;
+  const dfWithin = nTotal - validGroups.length;
+  const msBetween = ssBetween / dfBetween;
+  const msWithin = ssWithin / dfWithin;
+  const F = msBetween / msWithin;
+  const p = 1 - jStat.centralF.cdf(F, dfBetween, dfWithin);
+  return {F, p, dfBetween, dfWithin, groups: validGroups};
+}
+
+function chiSquareTest(rows, colA, colB){
+  const levelsA = [...new Set(rows.map(r => String(r[colA] ?? "空值")))];
+  const levelsB = [...new Set(rows.map(r => String(r[colB] ?? "空值")))];
+  if(levelsA.length < 2 || levelsB.length < 2) return null;
+  const obs = levelsA.map(a => levelsB.map(b => rows.filter(r => String(r[colA] ?? "空值")===a && String(r[colB] ?? "空值")===b).length));
+  const rowSums = obs.map(r => r.reduce((a,b)=>a+b,0));
+  const colSums = levelsB.map((_,j)=>obs.reduce((s,row)=>s+row[j],0));
+  const total = rowSums.reduce((a,b)=>a+b,0);
+  let chi2 = 0;
+  for(let i=0;i<levelsA.length;i++){
+    for(let j=0;j<levelsB.length;j++){
+      const expected = rowSums[i]*colSums[j]/total;
+      if(expected > 0) chi2 += Math.pow(obs[i][j]-expected,2)/expected;
+    }
+  }
+  const df = (levelsA.length-1)*(levelsB.length-1);
+  const p = 1 - jStat.chisquare.cdf(chi2, df);
+  return {chi2, df, p, levelsA, levelsB, obs};
+}
+
+function runStatTest(){
+  if(!currentSheetRows.length){
+    alert("请先上传并读取 Excel / CSV 文件。");
+    return;
+  }
+  const testType = document.getElementById("testTypeSelect").value;
+  const cols = Object.keys(currentSheetRows[0] || {});
+  const numCols = guessNumericColumns(currentSheetRows);
+  const groupCol = document.getElementById("testGroupColSelect").value || cols[0];
+  const valueCol = document.getElementById("testValueColSelect").value || numCols[0] || cols[1];
+  const secondCol = document.getElementById("testSecondCatColSelect").value || cols[1];
+
+  let resultText = "";
+  let interpText = "";
+
+  if(testType === "ttest"){
+    const groups = {};
+    currentSheetRows.forEach(r => {
+      const g = String(r[groupCol] ?? "空值");
+      if(!groups[g]) groups[g] = [];
+      groups[g].push(parseFloat(r[valueCol]));
+    });
+    const keys = Object.keys(groups).slice(0,2);
+    if(keys.length < 2){
+      alert("t 检验需要至少两个组别。");
+      return;
+    }
+    const res = tTestTwoSample(groups[keys[0]], groups[keys[1]]);
+    if(!res){
+      alert("当前数据不足以进行 t 检验。");
+      return;
+    }
+    resultText = `检验类型：两组均值比较（t 检验）
+分组列：${groupCol}
+数值列：${valueCol}
+组1：${keys[0]}（n=${res.nx}，均值=${res.mx.toFixed(2)}）
+组2：${keys[1]}（n=${res.ny}，均值=${res.my.toFixed(2)}）
+t = ${res.t.toFixed(4)}
+df = ${res.df.toFixed(2)}
+p = ${formatP(res.p)}`;
+    interpText = `基于分组列“${groupCol}”和数值列“${valueCol}”进行两组均值比较后，${keys[0]} 组与 ${keys[1]} 组之间的差异${res.p < 0.05 ? "具有统计学意义" : "未达到统计学意义"}（t=${res.t.toFixed(2)}, p=${formatP(res.p)}）。写作时可进一步结合均值差异方向说明哪一组更高。`;
+  } else if(testType === "anova"){
+    const groups = {};
+    currentSheetRows.forEach(r => {
+      const g = String(r[groupCol] ?? "空值");
+      if(!groups[g]) groups[g] = [];
+      groups[g].push(parseFloat(r[valueCol]));
+    });
+    const res = anovaOneWay(groups);
+    if(!res){
+      alert("当前数据不足以进行 ANOVA。");
+      return;
+    }
+    const details = res.groups.map(([k,v]) => {
+      const vals = v.filter(x => !isNaN(x));
+      return `${k}: n=${vals.length}, 均值=${mean(vals).toFixed(2)}`;
+    }).join("\n");
+    resultText = `检验类型：多组均值比较（单因素 ANOVA）
+分组列：${groupCol}
+数值列：${valueCol}
+${details}
+F = ${res.F.toFixed(4)}
+df = (${res.dfBetween}, ${res.dfWithin})
+p = ${formatP(res.p)}`;
+    interpText = `基于分组列“${groupCol}”对数值列“${valueCol}”进行单因素方差分析后，各组之间整体差异${res.p < 0.05 ? "具有统计学意义" : "未达到统计学意义"}（F=${res.F.toFixed(2)}, p=${formatP(res.p)}）。如 p<0.05，可进一步考虑事后两两比较。`;
+  } else if(testType === "chisq"){
+    const colB = secondCol || valueCol;
+    const res = chiSquareTest(currentSheetRows, groupCol, colB);
+    if(!res){
+      alert("当前数据不足以进行卡方检验。");
+      return;
+    }
+    resultText = `检验类型：分类变量关联（卡方检验）
+变量1：${groupCol}
+变量2：${colB}
+χ² = ${res.chi2.toFixed(4)}
+df = ${res.df}
+p = ${formatP(res.p)}
+
+列联表：
+${res.levelsA.map((a,i) => `${a}: ${res.obs[i].join(", ")}`).join("\n")}`;
+    interpText = `基于“${groupCol}”与“${colB}”进行卡方检验后，两个分类变量之间的关联${res.p < 0.05 ? "具有统计学意义" : "未达到统计学意义"}（χ²=${res.chi2.toFixed(2)}, p=${formatP(res.p)}）。写作时可结合列联表指出主要差异来源于哪些类别。`;
+  }
+
+  document.getElementById("statResultBox").textContent = resultText;
+  document.getElementById("statInterpretationBox").textContent = interpText;
+}
+
+
+function getText(id){
+  const el = document.getElementById(id);
+  return el ? (el.textContent || "").trim() : "";
+}
+
+function buildReportSections(){
+  const project = norm(document.getElementById("projectName").value);
+  const title = norm(document.getElementById("reportTitle").value) || `${project || "未命名项目"}研究报告`;
+  const author = norm(document.getElementById("authorName").value) || "未填写";
+  const abs = norm(document.getElementById("reportAbstract").value) || "无";
+  const keyword = norm(document.getElementById("keyword").value);
+  const notes = norm(document.getElementById("projectNotes").value) || "无";
+  const pdfSummary = getText("pdfSummary");
+  const reviewPrompt = getText("reviewPrompt");
+  const introDraft = getText("introDraft");
+  const discussionDraft = getText("discussionDraft");
+  const refs = getText("refsBox");
+  const dataSummary = getText("dataSummaryBox");
+  const groupSummary = getText("groupSummaryBox");
+  const dataPrompt = getText("dataAnalysisPrompt");
+  const statResult = getText("statResultBox");
+  const statInterpretation = getText("statInterpretationBox");
+
+  return {
+    title, author, abs, project, keyword, notes, pdfSummary,
+    reviewPrompt, introDraft, discussionDraft, refs,
+    dataSummary, groupSummary, dataPrompt, statResult, statInterpretation
+  };
+}
+
+function buildReportPreview(){
+  const s = buildReportSections();
+  const preview = [
+    `报告标题：${s.title}`,
+    `作者：${s.author}`,
+    `项目名称：${s.project || "未填写"}`,
+    `检索主题：${s.keyword || "未填写"}`,
+    ``,
+    `一、项目摘要`,
+    s.abs,
+    ``,
+    `二、项目笔记`,
+    s.notes,
+    ``,
+    `三、PDF / 全文路径摘要`,
+    s.pdfSummary || "暂无",
+    ``,
+    `四、综述生成`,
+    s.reviewPrompt || "暂无",
+    ``,
+    `五、前言生成`,
+    s.introDraft || "暂无",
+    ``,
+    `六、讨论扩写`,
+    s.discussionDraft || "暂无",
+    ``,
+    `七、Excel 数据摘要`,
+    s.dataSummary || "暂无",
+    ``,
+    `八、分组统计`,
+    s.groupSummary || "暂无",
+    ``,
+    `九、统计检验结果`,
+    s.statResult || "暂无",
+    ``,
+    `十、统计解释`,
+    s.statInterpretation || "暂无",
+    ``,
+    `十一、数据分析提示词`,
+    s.dataPrompt || "暂无",
+    ``,
+    `十二、参考文献`,
+    s.refs || "暂无"
+  ].join("\n");
+  document.getElementById("reportPreviewBox").textContent = preview;
+}
+
+function paragraphsFromText(text, docxLib, opts={}){
+  const { Paragraph, TextRun } = docxLib;
+  const lines = String(text || "").split(/\n+/);
+  return lines.map(line => new Paragraph({
+    spacing: { after: 120 },
+    children: [new TextRun({ text: line || " ", size: opts.size || 22 })]
+  }));
+}
+
+async function exportWordReport(){
+  if(typeof docx === "undefined" || typeof saveAs === "undefined"){
+    alert("当前环境未成功加载 Word 导出依赖，请联网后重试。");
+    return;
+  }
+
+  buildReportPreview();
+  const s = buildReportSections();
+  const {
+    Document, Packer, Paragraph, HeadingLevel, TextRun, SectionType, AlignmentType, PageBreak
+  } = docx;
+
+  const doc = new Document({
+    creator: "OpenAI",
+    title: s.title,
+    description: "科研系统自动生成报告",
+    sections: [{
+      properties: { type: SectionType.CONTINUOUS },
+      children: [
+        new Paragraph({
+          heading: HeadingLevel.TITLE,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 240 },
+          children: [new TextRun({ text: s.title, bold: true, size: 34 })]
+        }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 120 },
+          children: [new TextRun({ text: `作者：${s.author}`, size: 22 })]
+        }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 320 },
+          children: [new TextRun({ text: `项目：${s.project || "未填写"} ｜ 主题：${s.keyword || "未填写"}`, size: 22 })]
+        }),
+
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("一、项目摘要")] }),
+        ...paragraphsFromText(s.abs, docx),
+
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("二、项目笔记")] }),
+        ...paragraphsFromText(s.notes, docx),
+
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("三、PDF / 全文路径摘要")] }),
+        ...paragraphsFromText(s.pdfSummary || "暂无", docx),
+
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("四、综述生成提示")] }),
+        ...paragraphsFromText(s.reviewPrompt || "暂无", docx),
+
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("五、前言生成框架")] }),
+        ...paragraphsFromText(s.introDraft || "暂无", docx),
+
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("六、讨论扩写提示")] }),
+        ...paragraphsFromText(s.discussionDraft || "暂无", docx),
+
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("七、Excel 数据摘要")] }),
+        ...paragraphsFromText(s.dataSummary || "暂无", docx),
+
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("八、分组统计摘要")] }),
+        ...paragraphsFromText(s.groupSummary || "暂无", docx),
+
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("九、统计检验结果")] }),
+        ...paragraphsFromText(s.statResult || "暂无", docx),
+
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("十、统计解释")] }),
+        ...paragraphsFromText(s.statInterpretation || "暂无", docx),
+
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("十一、数据分析提示词")] }),
+        ...paragraphsFromText(s.dataPrompt || "暂无", docx),
+
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("十二、参考文献")] }),
+        ...paragraphsFromText(s.refs || "暂无", docx)
+      ]
+    }]
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const safeName = (s.title || "research_report").replace(/[\\/:*?"<>|]+/g, "_");
+  saveAs(blob, `${safeName}.docx`);
+}
+
+
+const PROJECT_TEMPLATES = {
+  "bile_acid": {
+    projectName: "新生儿胆汁淤积与胆汁酸代谢研究",
+    keyword: "neonatal cholestasis bile acid SLC10A1 UGT1A1 ABCB11 MYO5B TJP2",
+    notes: "重点关注胆汁酸转运核心基因、胆红素代谢基因、双诊断、良性高胆汁酸血症、UDCA 反应与基因型-表型关联。",
+    yearFrom: "2020",
+    mode: "gene",
+    preview: "适用于：新生儿高胆汁酸血症、胆汁淤积、SLC10A1/UGT1A1/ABCB11 等通路研究。建议重点做：基因频率统计、核心基因分层、TBA/TBIL/DBIL/GGT 与基因型关联、随访变化图。"
+  },
+  "thyroid": {
+    projectName: "儿童甲状腺功能异常与出生史研究",
+    keyword: "pediatric thyroid function birth history neonatal factors autoimmune thyroiditis hypothyroidism hyperthyroidism",
+    notes: "重点关注出生史、喂养史、用药情况、家族史、自身免疫指标、超声表现及随访疗效。",
+    yearFrom: "2018",
+    mode: "smart",
+    preview: "适用于：甲减、甲亢、桥本甲状腺炎及出生史关联研究。建议重点做：分病种统计、出生史因素比较、治疗前后指标变化、随访转归分析。"
+  },
+  "neonatal": {
+    projectName: "新生儿 / 早产儿临床结局研究",
+    keyword: "preterm infant neonatal outcomes growth development follow-up NICU risk factors",
+    notes: "重点关注胎龄、出生体重、住院过程、并发症、喂养、神经发育和长期随访结局。",
+    yearFrom: "2019",
+    mode: "smart",
+    preview: "适用于：早产儿、NICU 随访、新生儿临床结局研究。建议重点做：基线特征表、风险分层、结局比较、成长曲线与发育评估。"
+  },
+  "genetics": {
+    projectName: "基因变异与临床表型关联研究",
+    keyword: "genotype phenotype variant pathogenicity clinical correlation sequencing cohort",
+    notes: "重点关注变异分类、纯合/杂合/半合子、P/LP/VUS 分层、与临床指标和结局的关联。",
+    yearFrom: "2020",
+    mode: "gene",
+    preview: "适用于：队列基因检测、变异频次、基因型-表型研究。建议重点做：基因频率表、致病性分层、临床指标比较、趋势图和统计检验。"
+  },
+  "custom": {
+    projectName: "",
+    keyword: "",
+    notes: "",
+    yearFrom: "",
+    mode: "pdf",
+    preview: "空白模板。适合完全自定义课题。"
+  }
+};
+
+function applyProjectTemplate(){
+  const key = document.getElementById("projectTemplate").value;
+  const t = PROJECT_TEMPLATES[key];
+  if(!t){
+    document.getElementById("templatePreviewBox").textContent = "当前为通用科研模板。你可以手动填写项目名称、关键词和备注。";
+    return;
+  }
+  if(t.projectName) document.getElementById("projectName").value = t.projectName;
+  if(t.keyword) document.getElementById("keyword").value = t.keyword;
+  if(t.notes !== undefined) document.getElementById("projectNotes").value = t.notes;
+  if(t.yearFrom !== undefined) document.getElementById("yearFrom").value = t.yearFrom;
+  if(t.mode) document.getElementById("mode").value = t.mode;
+  document.getElementById("templatePreviewBox").textContent = t.preview || "已套用模板。";
+}
+
+function previewTemplate(){
+  const key = document.getElementById("projectTemplate").value;
+  if(!key){
+    document.getElementById("templatePreviewBox").textContent = "通用科研模板：适合任意课题。建议按“项目名称 + 关键词 + 研究备注”三部分填写。";
+    return;
+  }
+  const t = PROJECT_TEMPLATES[key];
+  document.getElementById("templatePreviewBox").textContent = t ? t.preview : "暂无模板说明。";
+}
+
+
+const MANAGED_PROJECTS_KEY = "research_system_v8_managed_projects";
+let currentManagedProjectId = "";
+
+function collectProjectState(){
+  return {
+    projectName: document.getElementById("projectName")?.value || "",
+    projectTemplate: document.getElementById("projectTemplate")?.value || "",
+    keyword: document.getElementById("keyword")?.value || "",
+    yearFrom: document.getElementById("yearFrom")?.value || "",
+    limit: document.getElementById("limit")?.value || "60",
+    mode: document.getElementById("mode")?.value || "pdf",
+    email: document.getElementById("emailForApi")?.value || "",
+    notes: document.getElementById("projectNotes")?.value || "",
+    reportTitle: document.getElementById("reportTitle")?.value || "",
+    authorName: document.getElementById("authorName")?.value || "",
+    reportAbstract: document.getElementById("reportAbstract")?.value || ""
+  };
+}
+
+function applyProjectState(state){
+  if(!state) return;
+  if(document.getElementById("projectName")) document.getElementById("projectName").value = state.projectName || "";
+  if(document.getElementById("projectTemplate")) document.getElementById("projectTemplate").value = state.projectTemplate || "";
+  if(document.getElementById("keyword")) document.getElementById("keyword").value = state.keyword || "";
+  if(document.getElementById("yearFrom")) document.getElementById("yearFrom").value = state.yearFrom || "";
+  if(document.getElementById("limit")) document.getElementById("limit").value = state.limit || "60";
+  if(document.getElementById("mode")) document.getElementById("mode").value = state.mode || "pdf";
+  if(document.getElementById("emailForApi")) document.getElementById("emailForApi").value = state.email || "";
+  if(document.getElementById("projectNotes")) document.getElementById("projectNotes").value = state.notes || "";
+  if(document.getElementById("reportTitle")) document.getElementById("reportTitle").value = state.reportTitle || "";
+  if(document.getElementById("authorName")) document.getElementById("authorName").value = state.authorName || "";
+  if(document.getElementById("reportAbstract")) document.getElementById("reportAbstract").value = state.reportAbstract || "";
+}
+
+function loadManagedProjects(){
+  try { return JSON.parse(localStorage.getItem(MANAGED_PROJECTS_KEY) || "[]"); }
+  catch(e){ return []; }
+}
+function saveManagedProjects(items){ localStorage.setItem(MANAGED_PROJECTS_KEY, JSON.stringify(items)); }
+function escapeHtmlLocal(s){ return String(s || "").replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+
+function renderProjectDashboard(project){
+  if(!project){
+    document.getElementById("projectDashboardBox").textContent = "保存项目后，这里会显示项目摘要、关键词和备注概览。";
+    return;
+  }
+  const s = project.state || {};
+  document.getElementById("projectDashboardBox").textContent =
+`项目名称：${project.name}
+模板：${s.projectTemplate || "通用"}
+关键词：${s.keyword || "未填写"}
+年份起点：${s.yearFrom || "未填写"}
+模式：${s.mode || "未填写"}
+
+项目备注：
+${s.notes || "无"}
+
+更新时间：${project.updatedAt || "未知"}`;
+}
+
+function chooseManagedProject(id){
+  const items = loadManagedProjects();
+  const p = items.find(x => x.id === id);
+  if(!p) return;
+  currentManagedProjectId = id;
+  document.getElementById("projectManagerName").value = p.name || "";
+  applyProjectState(p.state);
+  renderProjectDashboard(p);
+  alert("已切换到项目：" + p.name);
+}
+
+function refreshProjectList(){
+  const items = loadManagedProjects();
+  const box = document.getElementById("projectListBox");
+  if(!items.length){
+    box.innerHTML = "暂无项目。";
+    renderProjectDashboard(null);
+    return;
+  }
+  box.innerHTML = items.map((p, i) => `
+    <div style="border-bottom:1px dashed #e5e7eb;padding:10px 0">
+      <div><b>${i+1}. ${escapeHtmlLocal(p.name)}</b></div>
+      <div style="font-size:12px;color:#6b7280">更新时间：${escapeHtmlLocal(p.updatedAt || "")}</div>
+      <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="soft" onclick="chooseManagedProject('${p.id}')">打开</button>
+      </div>
+    </div>
+  `).join("");
+  if(currentManagedProjectId){
+    const cur = items.find(x => x.id === currentManagedProjectId);
+    renderProjectDashboard(cur || items[0]);
+  } else {
+    renderProjectDashboard(items[0]);
+  }
+}
+
+function saveAsManagedProject(){
+  const name = (document.getElementById("projectManagerName")?.value || document.getElementById("projectName")?.value || "").trim();
+  if(!name){ alert("请先填写项目名。"); return; }
+  const items = loadManagedProjects();
+  const id = "p_" + Date.now();
+  const project = { id, name, updatedAt: new Date().toLocaleString(), state: collectProjectState() };
+  items.unshift(project);
+  saveManagedProjects(items);
+  currentManagedProjectId = id;
+  document.getElementById("projectManagerName").value = name;
+  refreshProjectList();
+  renderProjectDashboard(project);
+  alert("项目已保存到项目首页。");
+}
+
+function updateManagedProject(){
+  if(!currentManagedProjectId){ alert("当前没有已打开的项目，请先新建或打开一个项目。"); return; }
+  const items = loadManagedProjects();
+  const idx = items.findIndex(x => x.id === currentManagedProjectId);
+  if(idx < 0){ alert("未找到当前项目，请先刷新项目列表。"); return; }
+  items[idx].name = (document.getElementById("projectManagerName")?.value || items[idx].name || "").trim();
+  items[idx].updatedAt = new Date().toLocaleString();
+  items[idx].state = collectProjectState();
+  saveManagedProjects(items);
+  refreshProjectList();
+  renderProjectDashboard(items[idx]);
+  alert("当前项目已更新。");
+}
+
+function deleteManagedProject(){
+  if(!currentManagedProjectId){ alert("当前没有已打开的项目。"); return; }
+  const items = loadManagedProjects();
+  const target = items.find(x => x.id === currentManagedProjectId);
+  if(!target){ alert("未找到当前项目。"); return; }
+  const ok = confirm("确认删除项目：" + target.name + " ?");
+  if(!ok) return;
+  const next = items.filter(x => x.id !== currentManagedProjectId);
+  saveManagedProjects(next);
+  currentManagedProjectId = "";
+  document.getElementById("projectManagerName").value = "";
+  refreshProjectList();
+  alert("项目已删除。");
+}
+
+function getChartImageDataUrl(){
+  if(typeof analysisChart !== "undefined" && analysisChart){
+    try { return analysisChart.toBase64Image(); } catch(e) { return ""; }
+  }
+  return "";
+}
+
+function buildLinkedExportSummary(){
+  const lines = [];
+  lines.push("联动导出内容：");
+  lines.push(`1. Word 报告：${norm(document.getElementById("reportTitle")?.value) || "未命名报告"}`);
+  lines.push(`2. 图表：${(typeof analysisChart !== "undefined" && analysisChart) ? "已生成，可导出 PNG" : "未生成"}`);
+  lines.push(`3. 统计结果：${getText("statResultBox") ? "已包含" : "暂无"}`);
+  lines.push(`4. 数据分析摘要：${getText("dataSummaryBox") ? "已包含" : "暂无"}`);
+  lines.push(`5. 参考文献：${getText("refsBox") ? "已包含" : "暂无"}`);
+  return lines.join("\n");
+}
+
+function exportStatAndDataTxt(){
+  const text = [
+    "【统计结果】",
+    getText("statResultBox") || "暂无",
+    "",
+    "【统计解释】",
+    getText("statInterpretationBox") || "暂无",
+    "",
+    "【数据摘要】",
+    getText("dataSummaryBox") || "暂无",
+    "",
+    "【分组统计】",
+    getText("groupSummaryBox") || "暂无",
+    "",
+    "【数据分析提示词】",
+    getText("dataAnalysisPrompt") || "暂无"
+  ].join("\n");
+  const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "research_system_linked_stats_and_data.txt";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function exportChartPNGLinked(){
+  if(typeof analysisChart === "undefined" || !analysisChart) return false;
+  try{
+    const a = document.createElement("a");
+    a.href = analysisChart.toBase64Image();
+    a.download = "research_system_linked_chart.png";
+    a.click();
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+async function exportWordReportLinked(includeChartImage){
+  if(typeof docx === "undefined" || typeof saveAs === "undefined"){
+    alert("当前环境未成功加载 Word 导出依赖，请联网后重试。");
+    return false;
+  }
+
+  buildReportPreview();
+  const s = buildReportSections();
+  const { Document, Packer, Paragraph, HeadingLevel, TextRun, SectionType, AlignmentType, ImageRun } = docx;
+
+  const children = [
+    new Paragraph({ heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER, spacing: { after: 240 }, children: [new TextRun({ text: s.title, bold: true, size: 34 })] }),
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [new TextRun({ text: `作者：${s.author}`, size: 22 })] }),
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 320 }, children: [new TextRun({ text: `项目：${s.project || "未填写"} ｜ 主题：${s.keyword || "未填写"}`, size: 22 })] }),
+
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("一、项目摘要")] }),
+    ...paragraphsFromText(s.abs, docx),
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("二、项目笔记")] }),
+    ...paragraphsFromText(s.notes, docx),
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("三、PDF / 全文路径摘要")] }),
+    ...paragraphsFromText(s.pdfSummary || "暂无", docx),
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("四、综述生成提示")] }),
+    ...paragraphsFromText(s.reviewPrompt || "暂无", docx),
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("五、前言生成框架")] }),
+    ...paragraphsFromText(s.introDraft || "暂无", docx),
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("六、讨论扩写提示")] }),
+    ...paragraphsFromText(s.discussionDraft || "暂无", docx),
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("七、Excel 数据摘要")] }),
+    ...paragraphsFromText(s.dataSummary || "暂无", docx),
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("八、分组统计摘要")] }),
+    ...paragraphsFromText(s.groupSummary || "暂无", docx),
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("九、统计检验结果")] }),
+    ...paragraphsFromText(s.statResult || "暂无", docx),
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("十、统计解释")] }),
+    ...paragraphsFromText(s.statInterpretation || "暂无", docx),
+    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("十一、数据分析提示词")] }),
+    ...paragraphsFromText(s.dataPrompt || "暂无", docx)
+  ];
+
+  if(includeChartImage){
+    const chartDataUrl = getChartImageDataUrl();
+    if(chartDataUrl){
+      const base64 = chartDataUrl.split(",")[1];
+      const binary = atob(base64);
+      const len = binary.length;
+      const bytes = new Uint8Array(len);
+      for(let i=0;i<len;i++) bytes[i] = binary.charCodeAt(i);
+      children.push(new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("十二、图表输出")] }));
+      children.push(new Paragraph({ children: [new ImageRun({ data: bytes, transformation: { width: 520, height: 320 } })] }));
+      children.push(new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: getText("chartInterpretationBox") || "无图表解读", size: 22 })] }));
+    }
+  }
+
+  children.push(new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(includeChartImage ? "十三、参考文献" : "十二、参考文献")] }));
+  children.push(...paragraphsFromText(s.refs || "暂无", docx));
+
+  const doc = new Document({
+    creator: "OpenAI",
+    title: s.title,
+    description: "科研系统一键联动导出报告",
+    sections: [{ properties: { type: SectionType.CONTINUOUS }, children }]
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const safeName = (s.title || "research_report").replace(/[\\/:*?"<>|]+/g, "_");
+  saveAs(blob, `${safeName}_联动报告.docx`);
+  return true;
+}
+
+async function oneClickLinkedExport(){
+  const statusBox = document.getElementById("linkedExportStatusBox");
+  statusBox.textContent = "正在准备联动导出...";
+  buildReportPreview();
+
+  const parts = [];
+  parts.push("开始联动导出。");
+  const chartOk = exportChartPNGLinked();
+  parts.push(chartOk ? "图表 PNG：已导出。" : "图表 PNG：未导出（可能尚未生成图表）。");
+  exportStatAndDataTxt();
+  parts.push("统计与数据摘要 TXT：已导出。");
+
+  try{
+    const wordOk = await exportWordReportLinked(true);
+    parts.push(wordOk ? "Word 报告：已导出。" : "Word 报告：未导出。");
+  }catch(e){
+    parts.push("Word 报告：导出失败。");
+  }
+
+  parts.push("");
+  parts.push(buildLinkedExportSummary());
+  statusBox.textContent = parts.join("\n");
+}
+
+refreshProjectList();
+</script>
+</body>
+</html>
