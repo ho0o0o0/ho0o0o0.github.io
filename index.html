@@ -57,6 +57,11 @@
     .tab{padding:9px 13px;border-radius:999px;border:1px solid #dbe3f0;background:#fff;color:#334155;font-weight:800;cursor:pointer}
     .tab.active{background:#2563eb;color:#fff;border-color:#2563eb}
     .panel{display:none}.panel.active{display:block}
+    .customLinkRow{display:grid;grid-template-columns:1fr 1.6fr auto;gap:10px;align-items:center;margin-top:10px}
+    .customLinkRow:first-child{margin-top:0}
+    .iconBtn{background:#f3f4f6;color:#374151;border:none;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer;white-space:nowrap}
+    .iconBtn:hover{background:#e5e7eb}
+    @media (max-width:760px){.customLinkRow{grid-template-columns:1fr}.iconBtn{width:100%}}
     .mobileCard{display:none}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
     @media (max-width:760px){
@@ -285,6 +290,19 @@
         <div id="panel-search" class="panel active">
           <div class="section">
             <h2 style="font-size:18px">平台入口</h2>
+            <div class="sub">下面 6 个入口可自行填写名称和网址。网址里可用 <span class="mono">{q}</span> 代表当前检索词，例如：<span class="mono">https://example.com/search?q={q}</span></div>
+            <div class="group">
+              <h3>自定义入口（可新增 / 删除，不限数量）</h3>
+              <div class="small" style="margin-bottom:10px">可随时新增、删除和编辑。网址里可用 <span class="mono">{q}</span> 自动代入当前检索词。</div>
+              <div id="customLinksEditor"></div>
+              <div class="btns">
+                <button class="primary" onclick="addCustomLinkRow()">＋ 新增入口</button>
+                <button class="soft" onclick="saveCustomLinks()">保存自定义入口</button>
+                <button class="soft" onclick="resetCustomLinks()">恢复默认入口</button>
+                <button class="light" onclick="fillCustomLinkExamples()">填入示例</button>
+              </div>
+              <div id="customLinksMsg" class="small" style="margin-top:8px">未保存时也可先填写，点击保存后下次会自动保留。</div>
+            </div>
             <div id="linksBox">生成后显示。</div>
           </div>
 
@@ -523,6 +541,7 @@
 <script>
 const WS_KEY = "research_system_v2_workspace";
 const EMAIL_KEY = "research_system_v2_email";
+const CUSTOM_LINKS_KEY = "research_system_v9_custom_links";
 
 const groupedPlatforms = {
   "📊 核心数据库": [
@@ -569,10 +588,118 @@ function makeQuery(keyword, mode, yearFrom){
   return q.trim();
 }
 
+function getDefaultCustomLinks(){
+  return [{name:"", url:""}];
+}
+function normalizeCustomLinks(items){
+  const src = Array.isArray(items) ? items : [];
+  const cleaned = src.map(item => ({
+    name: norm(item?.name || ""),
+    url: norm(item?.url || "")
+  })).filter(item => item.name || item.url);
+  return cleaned.length ? cleaned : getDefaultCustomLinks();
+}
+function loadCustomLinks(){
+  try{
+    return normalizeCustomLinks(JSON.parse(localStorage.getItem(CUSTOM_LINKS_KEY) || "[]"));
+  }catch(e){
+    return getDefaultCustomLinks();
+  }
+}
+function createCustomLinkRow(item={name:"", url:""}){
+  const row = document.createElement('div');
+  row.className = 'customLinkRow';
+  row.innerHTML = `
+    <input class="customLinkName" placeholder="入口名称，例如：SciSpace" value="${esc(item.name || "")}">
+    <input class="customLinkUrl" placeholder="入口网址，支持 {q}" value="${esc(item.url || "")}">
+    <button class="iconBtn danger" type="button">删除</button>
+  `;
+  row.querySelector('button').addEventListener('click', function(){
+    row.remove();
+    ensureAtLeastOneCustomLinkRow();
+    const msg = document.getElementById('customLinksMsg');
+    if(msg) msg.textContent = '已删除该入口，记得点击“保存自定义入口”。';
+  });
+  return row;
+}
+function renderCustomLinkEditor(items){
+  const box = document.getElementById('customLinksEditor');
+  if(!box) return;
+  box.innerHTML = '';
+  (items && items.length ? items : getDefaultCustomLinks()).forEach(item => box.appendChild(createCustomLinkRow(item)));
+}
+function ensureAtLeastOneCustomLinkRow(){
+  const box = document.getElementById('customLinksEditor');
+  if(box && !box.children.length){
+    box.appendChild(createCustomLinkRow());
+  }
+}
+function fillCustomLinkInputs(){
+  renderCustomLinkEditor(loadCustomLinks());
+}
+function addCustomLinkRow(item={name:"", url:""}){
+  const box = document.getElementById('customLinksEditor');
+  if(!box) return;
+  box.appendChild(createCustomLinkRow(item));
+  const msg = document.getElementById('customLinksMsg');
+  if(msg) msg.textContent = '已新增入口，编辑后记得点击“保存自定义入口”。';
+}
+function collectCustomLinksFromInputs(){
+  return normalizeCustomLinks(
+    Array.from(document.querySelectorAll('#customLinksEditor .customLinkRow')).map(row => ({
+      name: norm(row.querySelector('.customLinkName')?.value || ""),
+      url: norm(row.querySelector('.customLinkUrl')?.value || "")
+    }))
+  );
+}
+function buildCustomPlatformGroup(){
+  const custom = loadCustomLinks().filter(x => x.name && x.url);
+  if(!custom.length) return {};
+  return {
+    "⭐ 自定义入口": custom.map(item => [item.name, q => {
+      const raw = item.url;
+      if(raw.includes('{q}')) return raw.replaceAll('{q}', q);
+      return raw;
+    }])
+  };
+}
+function saveCustomLinks(){
+  const items = collectCustomLinksFromInputs();
+  localStorage.setItem(CUSTOM_LINKS_KEY, JSON.stringify(items));
+  fillCustomLinkInputs();
+  const msg = document.getElementById('customLinksMsg');
+  if(msg) msg.textContent = `自定义入口已保存（共 ${items.filter(x => x.name && x.url).length} 个有效入口）。`;
+  const currentQuery = document.getElementById('bestQuery')?.textContent?.trim();
+  if(currentQuery && currentQuery !== '—') renderGroupedLinks(currentQuery);
+}
+function resetCustomLinks(){
+  localStorage.setItem(CUSTOM_LINKS_KEY, JSON.stringify(getDefaultCustomLinks()));
+  fillCustomLinkInputs();
+  const msg = document.getElementById('customLinksMsg');
+  if(msg) msg.textContent = '已恢复为空白默认入口。';
+  const currentQuery = document.getElementById('bestQuery')?.textContent?.trim();
+  if(currentQuery && currentQuery !== '—') renderGroupedLinks(currentQuery);
+}
+function fillCustomLinkExamples(){
+  const examples = [
+    {name:'SciSpace', url:'https://typeset.io/search?q={q}'},
+    {name:'Elicit', url:'https://elicit.com/search?q={q}'},
+    {name:'Zotero', url:'https://www.zotero.org/'},
+    {name:'ChatGPT', url:'https://chatgpt.com/'},
+    {name:'Google', url:'https://www.google.com/search?q={q}'},
+    {name:'PubPeer', url:'https://pubpeer.com/search?q={q}'},
+    {name:'ResearchGate', url:'https://www.google.com/search?q={q}%20site:researchgate.net'},
+    {name:'我的主页', url:'https://example.com/search?q={q}'}
+  ];
+  renderCustomLinkEditor(examples);
+  const msg = document.getElementById('customLinksMsg');
+  if(msg) msg.textContent = '已填入示例，点击“保存自定义入口”后生效。';
+}
 function renderGroupedLinks(query){
   const q = enc(query);
   let html = "";
-  Object.entries(groupedPlatforms).forEach(([group, items]) => {
+  const mergedPlatforms = {...buildCustomPlatformGroup(), ...groupedPlatforms};
+  Object.entries(mergedPlatforms).forEach(([group, items]) => {
     html += `<div class="group"><h3>${group}</h3><div class="groupLinks small">`;
     html += items.map(p=>`<a target="_blank" href="${p[1](q)}">${p[0]}</a>`).join(" ｜ ");
     html += `</div></div>`;
@@ -2064,6 +2191,7 @@ document.addEventListener("keydown", function(e){
 });
 window.addEventListener("load", async function(){
   await ensureSitePassword();
+  fillCustomLinkInputs();
   const logged = localStorage.getItem(RS_LOGIN_KEY) === "1";
   applyLoginState(logged);
   const remain = getLockRemainingMs();
