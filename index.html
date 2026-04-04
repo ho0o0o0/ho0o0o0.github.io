@@ -1927,10 +1927,11 @@ async function oneClickLinkedExport(){
 refreshProjectList();
 
 /* ===== Password manager v4 ===== */
-const RS_PWD_KEY = "research_system_v4_site_password_hash";
-const RS_LOGIN_KEY = "research_system_v4_logged_in";
-const RS_FAIL_KEY = "research_system_v4_fail_count";
-const RS_LOCK_KEY = "research_system_v4_lock_until";
+const RS_PWD_KEY = "research_system_v5_site_password_hash";
+const RS_LOGIN_KEY = "research_system_v5_logged_in";
+const RS_FAIL_KEY = "research_system_v5_fail_count";
+const RS_LOCK_KEY = "research_system_v5_lock_until";
+const RS_CUSTOM_KEY = "research_system_v5_custom_password";
 const RS_DEFAULT_PASSWORD_HASH = "840fc6db26b95e8c2563092e3ce9779b51dab270038bc90785f6e8814b1d037c";
 
 async function rsHash(text){
@@ -1953,10 +1954,12 @@ function formatRemain(ms){
   return sec + " 秒";
 }
 async function ensureSitePassword(){
+  const isCustom = localStorage.getItem(RS_CUSTOM_KEY) === "1";
   let saved = localStorage.getItem(RS_PWD_KEY);
-  if(!saved){
+  if(!saved || !isCustom){
     saved = RS_DEFAULT_PASSWORD_HASH;
     localStorage.setItem(RS_PWD_KEY, saved);
+    localStorage.setItem(RS_CUSTOM_KEY, "0");
   }
   return saved;
 }
@@ -2031,6 +2034,7 @@ async function changeSitePassword(){
   if(saved !== oldHash){ msg.textContent = "当前密码不正确。"; msg.style.color = "#dc2626"; return; }
   const newHash = await rsHash(newPwd);
   localStorage.setItem(RS_PWD_KEY, newHash);
+  localStorage.setItem(RS_CUSTOM_KEY, "1");
   document.getElementById("oldPwdInput").value = "";
   document.getElementById("newPwdInput").value = "";
   document.getElementById("confirmPwdInput").value = "";
@@ -2042,6 +2046,7 @@ async function resetSitePassword(){
   const ok = confirm("确认恢复默认密码吗？");
   if(!ok) return;
   localStorage.setItem(RS_PWD_KEY, RS_DEFAULT_PASSWORD_HASH);
+  localStorage.setItem(RS_CUSTOM_KEY, "0");
   clearLoginRiskState();
   document.getElementById("pwdPanelMsg").textContent = "已恢复默认密码。";
   document.getElementById("pwdPanelMsg").style.color = "#d97706";
