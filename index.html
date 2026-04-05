@@ -3,2204 +3,1865 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#2563eb" />
-  <title>song library</title>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.6/dist/jstat.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <title>Song library</title>
   <style>
     :root{
-      --bg:#f5f7fb; --card:#fff; --line:#e5e7eb; --text:#111827; --muted:#6b7280;
-      --blue:#2563eb; --blue2:#1d4ed8; --ok:#059669; --warn:#d97706; --bad:#dc2626;
-      --shadow:0 10px 24px rgba(2,6,23,.08); --r:18px;
+      --bg:#f4f7fb;
+      --card:#ffffff;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --brand:#2563eb;
+      --brand2:#1d4ed8;
+      --soft:#eff6ff;
+      --shadow:0 8px 24px rgba(15,23,42,.08);
+      --radius:18px;
     }
     *{box-sizing:border-box}
-    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gradient(180deg,#edf4ff 0,#f5f7fb 180px);color:var(--text)}
-    .wrap{max-width:1440px;margin:0 auto;padding:18px 14px 60px}
-    .hero{background:linear-gradient(135deg,#1d4ed8,#2563eb 55%,#3b82f6);color:#fff;border-radius:24px;padding:24px 20px;box-shadow:var(--shadow);margin-bottom:16px}
-    .hero h1{margin:0 0 8px;font-size:30px}.hero p{margin:0;line-height:1.7;opacity:.96}
-    .grid{display:grid;grid-template-columns:420px 1fr;gap:16px}
-    @media (max-width:1080px){.grid{grid-template-columns:1fr}}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px}
-    h2{margin:0 0 10px;font-size:19px}
-    h3{margin:0 0 8px;font-size:16px}
-    .sub{margin:-4px 0 12px;color:var(--muted);font-size:14px;line-height:1.6}
-    label{display:block;font-size:14px;font-weight:700;margin:10px 0 6px}
-    input,textarea,select{width:100%;border:1px solid #d5dbe7;border-radius:12px;padding:12px 14px;font-size:15px;outline:none;background:#fff}
-    textarea{min-height:96px;resize:vertical;line-height:1.6}
-    input:focus,textarea:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .btns,.toolbar,.pillrow{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
-    button{border:none;border-radius:12px;padding:11px 15px;font-weight:800;cursor:pointer}
-    .primary{background:var(--blue);color:#fff}.primary:hover{background:var(--blue2)}
-    .light{background:#eaf1ff;color:#1d4ed8}.soft{background:#f3f4f6;color:#374151}.danger{background:#fee2e2;color:#991b1b}
-    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
-    .stat{background:#f8fbff;border:1px solid #e2e8f7;border-radius:14px;padding:12px}
-    .stat .n{font-size:22px;font-weight:900;color:#1d4ed8}.stat .t{font-size:12px;color:var(--muted);margin-top:4px}
-    .box{background:#fbfdff;border:1px dashed #cdd8ea;border-radius:16px;padding:14px}
-    .big{font-size:22px;font-weight:900;word-break:break-word;margin-top:6px}
-    .chip{display:inline-block;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800}
-    .ok{background:#ecfdf5;color:#065f46}.warn{background:#fff7ed;color:#9a3412}.bad{background:#fee2e2;color:#991b1b}
-    .pill{padding:8px 12px;border-radius:999px;border:1px solid #dbe3f0;background:#f8fbff;color:#334155;font-size:13px;font-weight:700;cursor:pointer}
-    .pill.active{background:#2563eb;color:#fff}
-    .small{font-size:12px;color:var(--muted);line-height:1.6}.section{margin-top:16px}
-    .group{border:1px solid #e6ebf3;border-radius:14px;padding:12px;margin-bottom:12px;background:#fff}
-    .groupLinks{line-height:2}
-    .tblWrap{max-height:700px;overflow:auto;border:1px solid #e6ebf3;border-radius:16px}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px 8px;border-bottom:1px solid #edf1f6;vertical-align:top;text-align:left;font-size:14px}
-    th{font-size:13px;color:#475569;background:#f8fafc;position:sticky;top:0}
-    a{color:#1d4ed8}.titleLink{font-weight:700;text-decoration:none}.titleLink:hover{text-decoration:underline}
-    .tabs{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
-    .tab{padding:9px 13px;border-radius:999px;border:1px solid #dbe3f0;background:#fff;color:#334155;font-weight:800;cursor:pointer}
-    .tab.active{background:#2563eb;color:#fff;border-color:#2563eb}
-    .panel{display:none}.panel.active{display:block}
-    .customLinkRow{display:grid;grid-template-columns:1fr 1.6fr auto;gap:10px;align-items:center;margin-top:10px}
-    .customLinkRow:first-child{margin-top:0}
-    .iconBtn{background:#f3f4f6;color:#374151;border:none;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer;white-space:nowrap}
-    .iconBtn:hover{background:#e5e7eb}
-    @media (max-width:760px){.customLinkRow{grid-template-columns:1fr}.iconBtn{width:100%}}
-    .mobileCard{display:none}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-    @media (max-width:760px){
-      .stats{grid-template-columns:repeat(2,1fr)}
-      .tblWrap{display:none}
-      .mobileCard{display:block}
-      .mobileItem{border:1px solid #e6ebf3;border-radius:14px;padding:12px;margin-bottom:10px;background:#fff}
-      .mobileItem .t{font-weight:800;margin-bottom:8px}
+    body{
+      margin:0;
+      font-family:Arial,"Microsoft YaHei","PingFang SC",sans-serif;
+      background:linear-gradient(180deg,#eef4ff 0%, var(--bg) 240px);
+      color:var(--text);
+    }
+    .wrap{
+      max-width:1240px;
+      margin:0 auto;
+      padding:28px 18px 44px;
+    }
+    .hero{
+      background:linear-gradient(135deg,#1d4ed8,#2563eb 60%,#3b82f6);
+      color:#fff;
+      border-radius:26px;
+      padding:28px 26px;
+      box-shadow:var(--shadow);
+    }
+    .hero h1{
+      margin:0 0 8px;
+      font-size:32px;
+    }
+    .hero p{
+      margin:0;
+      line-height:1.7;
+      opacity:.96;
+    }
+    .section{
+      margin-top:18px;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .section .hd{
+      padding:18px 20px 10px;
+      font-size:20px;
+      font-weight:700;
+    }
+    .section .bd{
+      padding:0 20px 20px;
+    }
+    .featured-bar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      padding:0 20px 20px;
+    }
+    .featured-btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      text-decoration:none;
+      min-width:104px;
+      height:42px;
+      padding:0 16px;
+      border-radius:999px;
+      background:var(--soft);
+      color:var(--brand2);
+      border:1px solid #c7dcff;
+      font-weight:700;
+      font-size:14px;
+      transition:.18s ease;
+      cursor:pointer;
+    }
+    .featured-btn:hover{
+      background:#dbeafe;
+      transform:translateY(-1px);
+    }
+    .filters{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      padding:0 20px 20px;
+    }
+    .filter-btn{
+      border:none;
+      background:#f3f4f6;
+      color:#374151;
+      border-radius:999px;
+      padding:10px 16px;
+      font-size:14px;
+      font-weight:700;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+    .filter-btn.active{
+      background:var(--brand);
+      color:#fff;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:12px;
+      padding:0 20px 20px;
+    }
+    .platform-card{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px 14px 12px;
+      background:#fbfdff;
+      min-height:92px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      transition:.18s ease;
+    }
+    .platform-card:hover{
+      border-color:#bfd7ff;
+      box-shadow:0 4px 14px rgba(37,99,235,.08);
+      transform:translateY(-1px);
+    }
+    .platform-card a{
+      color:var(--brand);
+      text-decoration:none;
+      font-weight:700;
+      font-size:15px;
+      line-height:1.4;
+    }
+    .platform-card small{
+      display:block;
+      margin-top:8px;
+      color:var(--muted);
+      line-height:1.5;
+      font-size:12px;
+    }
+    .search-wrap{
+      padding:0 20px 20px;
+    }
+    .search-box{
+      display:grid;
+      grid-template-columns:170px 1fr 140px;
+      gap:12px;
+      align-items:center;
+    }
+    select,input[type="text"]{
+      width:100%;
+      border:1px solid #cfd8e3;
+      border-radius:14px;
+      padding:15px 16px;
+      font-size:16px;
+      outline:none;
+      background:#fff;
+    }
+    input.big{
+      font-size:18px;
+      padding:18px 18px;
+    }
+    select:focus,input[type="text"]:focus{
+      border-color:var(--brand);
+      box-shadow:0 0 0 4px rgba(37,99,235,.12);
+    }
+    button{
+      border:none;
+      border-radius:14px;
+      height:54px;
+      cursor:pointer;
+      font-size:15px;
+      font-weight:700;
+      transition:.18s ease;
+    }
+    .primary{
+      background:var(--brand);
+      color:#fff;
+    }
+    .primary:hover{ background:var(--brand2); }
+    .ghost{
+      background:#f3f4f6;
+      color:#374151;
+    }
+    .ghost:hover{ background:#e5e7eb; }
+    .helper{
+      margin-top:12px;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.7;
+    }
+    .status{
+      margin-top:14px;
+      padding:12px 14px;
+      border-radius:12px;
+      background:#eff6ff;
+      color:#1e3a8a;
+      border:1px solid #bfdbfe;
+      line-height:1.6;
+    }
+    .results{
+      display:grid;
+      gap:14px;
+      padding:0 20px 20px;
+    }
+    .result{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px 16px;
+      background:#fff;
+    }
+    .src{
+      display:inline-block;
+      font-size:12px;
+      font-weight:700;
+      color:#fff;
+      background:#059669;
+      border-radius:999px;
+      padding:4px 10px;
+      margin-bottom:8px;
+    }
+    .title{
+      font-size:18px;
+      font-weight:700;
+      margin:2px 0 8px;
+      line-height:1.5;
+    }
+    .meta{
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.75;
+    }
+    .actions{
+      margin-top:10px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .actions a{
+      text-decoration:none;
+      padding:8px 12px;
+      border-radius:10px;
+      background:#eff6ff;
+      color:#1d4ed8;
+      font-size:14px;
+      font-weight:700;
+    }
+    .actions a:hover{ background:#dbeafe; }
+    .empty{
+      border:1px dashed #cbd5e1;
+      background:#f8fafc;
+      padding:18px;
+      border-radius:14px;
+      color:var(--muted);
+      line-height:1.7;
+    }
+    .custom-manager{
+      display:grid;
+      grid-template-columns:1fr 1.6fr 170px 170px 160px 130px;
+      gap:12px;
+      align-items:center;
+    }
+    .featured-check{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:0 4px;
+      color:#374151;
+      font-size:14px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+    .featured-check input{
+      width:16px;
+      height:16px;
+    }
+    .custom-list{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:14px;
+    }
+    .custom-item{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:9px 12px;
+      border-radius:12px;
+      border:1px solid #c7dcff;
+      background:#eff6ff;
+      color:#1e3a8a;
+      font-size:14px;
+      line-height:1.4;
+    }
+    .custom-item small{
+      color:#4b5563;
+      font-size:12px;
+    }
+    .custom-del{
+      border:none;
+      background:#fee2e2;
+      color:#b91c1c;
+      width:28px;
+      height:28px;
+      border-radius:999px;
+      font-size:16px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .custom-del:hover{
+      background:#fecaca;
+    }
+    .mode-badge{
+      display:inline-flex;
+      align-items:center;
+      padding:3px 8px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:700;
+      margin-left:6px;
+      background:#dbeafe;
+      color:#1d4ed8;
+    }
+    .mode-badge.linkonly{
+      background:#e5e7eb;
+      color:#374151;
+    }
+    .custom-actions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .custom-go{
+      border:none;
+      background:#dbeafe;
+      color:#1d4ed8;
+      min-width:56px;
+      height:32px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:700;
+      cursor:pointer;
+      padding:0 12px;
+    }
+    .custom-go:hover{ background:#bfdbfe; }
+
+
+    .report-wrap{padding:0 20px 20px;}
+    .report-card{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:#fff;
+      padding:20px;
+      box-shadow:var(--shadow);
+    }
+    .report-title{
+      font-size:34px;
+      font-weight:800;
+      margin:0 0 14px;
+      line-height:1.25;
+      color:#0f172a;
+    }
+    .report-meta{
+      color:#374151;
+      font-size:14px;
+      line-height:1.8;
+      margin-bottom:20px;
+    }
+    .report-section-title{
+      font-size:18px;
+      font-weight:800;
+      margin:24px 0 12px;
+      color:#111827;
+    }
+    .report-list{
+      margin:0;
+      padding-left:20px;
+      color:#1f2937;
+      line-height:1.9;
+      font-size:14px;
+    }
+    .report-table-wrap{overflow:auto;}
+    .report-table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:860px;
+      font-size:14px;
+    }
+    .report-table th,.report-table td{
+      border:1px solid #d1d5db;
+      padding:10px 12px;
+      text-align:left;
+      vertical-align:top;
+      line-height:1.6;
+    }
+    .report-table th{background:#f8fafc;font-weight:800;}
+    .mono{font-family:Consolas,Monaco,"Courier New",monospace;word-break:break-all;}
+    .ok{color:#065f46;font-weight:700;}
+    .muted{color:#6b7280;}
+    .report-links a{word-break:break-all;}
+    .view-switch{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+    .hidden{display:none}
+
+    .filter-panel{
+      display:grid;
+      gap:14px;
+    }
+    .filter-grid{
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:12px;
+      align-items:end;
+    }
+    .filter-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:2px;
+    }
+    .filter-note{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.7;
+    }
+    .stats-badges{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+    .stat-badge{
+      background:#eff6ff;
+      color:#1e3a8a;
+      border:1px solid #bfdbfe;
+      border-radius:999px;
+      padding:8px 12px;
+      font-size:13px;
+      font-weight:700;
+    }
+
+    #filteredResults{
+      max-height: 700px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+    .lock-layer{
+      position:fixed;
+      inset:0;
+      z-index:9999;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      background:linear-gradient(180deg,#162a63 0%, #132455 100%);
+    }
+    .lock-card{
+      width:min(420px, 100%);
+      background:#f4f4f5;
+      border:none;
+      border-radius:28px;
+      box-shadow:none;
+      padding:28px 24px 28px;
+    }
+    .lock-title{
+      margin:0 0 8px;
+      font-size:28px;
+      font-weight:800;
+      color:#2d5eea;
+      text-align:left;
+      letter-spacing:.2px;
+    }
+    .lock-subtitle{
+      margin:0 0 8px;
+      min-height:12px;
+      color:transparent;
+      line-height:1;
+      text-align:left;
+      font-size:12px;
+    }
+    .lock-input-wrap{
+      position:relative;
+      display:block;
+      margin-top:6px;
+    }
+    .lock-input{
+      width:100%;
+      border:1px solid #c8cfdd;
+      border-radius:16px;
+      padding:15px 52px 15px 16px;
+      font-size:18px;
+      outline:none;
+      background:#f7f7f8;
+      color:#1f2937;
+    }
+    .lock-input::placeholder{
+      color:#7f8798;
+    }
+    .lock-input:focus{
+      border-color:#7f9cff;
+      box-shadow:0 0 0 4px rgba(45,94,234,.10);
+      background:#fff;
+    }
+    .lock-input-eye{
+      position:absolute;
+      top:50%;
+      right:12px;
+      transform:translateY(-50%);
+      width:32px;
+      height:32px;
+      border:none;
+      background:transparent;
+      color:#7b8498;
+      font-size:18px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:0;
+    }
+    .lock-input-eye:hover{
+      color:#2d5eea;
+      background:transparent;
+    }
+    .icon-btn{
+      height:50px;
+      width:48px;
+      border:none;
+      border-radius:14px;
+      background:#eff6ff;
+      color:#1d4ed8;
+      font-size:20px;
+      font-weight:700;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .icon-btn:hover{ background:#dbeafe; }
+    .lock-actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:18px;
+    }
+    .lock-actions button{
+      height:40px;
+      border-radius:14px;
+      font-size:14px;
+      font-weight:800;
+    }
+    .lock-clear-btn{
+      background:#ececf1;
+      color:#2b3a67;
+    }
+    .lock-clear-btn:hover{
+      background:#e3e4ea;
+    }
+    .lock-msg{
+      min-height:22px;
+      margin-top:12px;
+      color:#b91c1c;
+      font-size:14px;
+      text-align:left;
+      padding-left:2px;
+    }
+    .app-shell.is-locked{
+      height:100vh;
+      overflow:hidden;
+    }
+    .security-fab{
+      position:fixed;
+      right:20px;
+      bottom:20px;
+      z-index:9000;
+      width:54px;
+      height:54px;
+      border-radius:999px;
+      box-shadow:0 12px 30px rgba(37,99,235,.22);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      font-size:22px;
+    }
+    .security-fab.show{ display:flex; }
+    .security-modal{
+      position:fixed;
+      inset:0;
+      z-index:9500;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(15,23,42,.35);
+      backdrop-filter:blur(6px);
+      padding:24px;
+    }
+    .security-modal.show{ display:flex; }
+    .security-panel{
+      width:min(520px,100%);
+      background:#fff;
+      border-radius:24px;
+      border:1px solid var(--line);
+      box-shadow:0 24px 60px rgba(15,23,42,.18);
+      padding:24px;
+    }
+    .security-panel h3{
+      margin:0 0 14px;
+      font-size:24px;
+    }
+    .security-grid{
+      display:grid;
+      gap:12px;
+    }
+    .security-grid input{
+      width:100%;
+      border:1px solid #cfd8e3;
+      border-radius:14px;
+      padding:14px 16px;
+      font-size:16px;
+      outline:none;
+    }
+    .security-grid input:focus{
+      border-color:var(--brand);
+      box-shadow:0 0 0 4px rgba(37,99,235,.12);
+    }
+    .security-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:14px;
+    }
+    .security-note{
+      min-height:22px;
+      margin-top:10px;
+      font-size:14px;
+      color:#374151;
+    }
+    .top-tools{
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      margin-bottom:14px;
+    }
+    .top-tool-btn{
+      height:42px;
+      border-radius:999px;
+      padding:0 16px;
+      font-size:14px;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 6px 18px rgba(15,23,42,.08);
+    }
+    .top-tool-btn.show{
+      display:inline-flex;
+    }
+
+    @media (max-width:1100px){
+      .grid{grid-template-columns:repeat(4,minmax(0,1fr));}
+      .search-box{grid-template-columns:1fr 1fr;}
+      .custom-manager{grid-template-columns:1fr 1fr;}
+      .filter-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+    }
+    @media (max-width:780px){
+      .custom-manager{grid-template-columns:1fr;}
+      .grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+      .search-box{grid-template-columns:1fr;}
+      .filter-grid{grid-template-columns:1fr;}
+      .hero h1{font-size:28px;}
     }
   </style>
 </head>
 <body>
 
-<div id="loginOverlay" style="position:fixed;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a8a);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px;">
-  <div style="width:min(420px,100%);background:#fff;border-radius:24px;box-shadow:0 20px 50px rgba(0,0,0,.25);padding:28px 24px;">
-    <div style="font-size:28px;font-weight:900;color:#1d4ed8;margin-bottom:8px">song library</div>
-    
-    <input id="loginPasswordInput" type="password" placeholder="请输入密码" style="width:100%;border:1px solid #d5dbe7;border-radius:14px;padding:14px 16px;font-size:16px;outline:none">
-    <div id="loginMsg" style="min-height:22px;color:#dc2626;font-size:13px;margin-top:10px"></div>
-    <div style="display:flex;gap:10px;margin-top:8px">
-      <button class="primary" style="flex:1" onclick="rsLogin()">进入系统</button>
-      <button class="soft" style="flex:1" onclick="document.getElementById('loginPasswordInput').value='';document.getElementById('loginMsg').textContent='';">清空</button>
-    </div>
-  </div>
-</div>
-
-<div id="pwdManagerBar" style="position:fixed;right:18px;top:18px;z-index:9998;display:none;gap:10px;">
-  <button class="soft" onclick="togglePwdPanel()">🔐 密码管理</button>
-  <button class="danger" onclick="logoutSite()">退出登录</button>
-</div>
-
-<div id="pwdPanel" style="position:fixed;right:18px;top:70px;width:min(360px,calc(100vw - 36px));background:#fff;border:1px solid #e5e7eb;border-radius:20px;box-shadow:0 20px 45px rgba(2,6,23,.18);padding:16px;z-index:9998;display:none;">
-  <h3 style="margin:0 0 8px;font-size:18px">密码管理</h3>
-  <div class="small" style="margin-bottom:10px">这里可以直接修改网页登录密码，不需要改代码。密码保存在当前浏览器本机。</div>
-  <label for="oldPwdInput">当前密码</label>
-  <input id="oldPwdInput" type="password" placeholder="输入当前密码">
-  <label for="newPwdInput">新密码</label>
-  <input id="newPwdInput" type="password" placeholder="至少 4 位">
-  <label for="confirmPwdInput">确认新密码</label>
-  <input id="confirmPwdInput" type="password" placeholder="再次输入新密码">
-  <div style="display:flex;gap:10px;margin-top:12px">
-    <button class="primary" style="flex:1" onclick="changeSitePassword()">保存新密码</button>
-    <button class="soft" style="flex:1" onclick="resetSitePassword()">恢复默认</button>
-  </div>
-  <div id="pwdPanelMsg" class="small" style="margin-top:10px;min-height:20px"></div>
-</div>
-
-<div class="wrap">
-  <div class="hero">
-    <h1>song library</h1>
-    <p>私人科研资料库与分析工作台。</p>
-  </div>
-
-  <div class="grid">
-    <div>
-      <div class="card">
-        <h2>项目首页 / 多项目管理</h2>
-        <div class="sub">可建立多个课题项目，支持保存、切换、覆盖更新与删除，适合长期维护多个研究方向。</div>
-
-        <label for="projectManagerName">当前项目名</label>
-        <input id="projectManagerName" placeholder="例如：新生儿胆汁淤积课题" />
-
-        <div class="btns">
-          <button class="primary" onclick="saveAsManagedProject()">新建/另存项目</button>
-          <button class="soft" onclick="updateManagedProject()">覆盖当前项目</button>
-          <button class="soft" onclick="refreshProjectList()">刷新项目列表</button>
-          <button class="danger" onclick="deleteManagedProject()">删除当前项目</button>
+  <div id="appShell" class="app-shell is-locked">
+    <div id="lockLayer" class="lock-layer">
+      <div class="lock-card">
+        <h2 class="lock-title">Song library</h2>
+        <p class="lock-subtitle">&nbsp;</p>
+        <div class="lock-input-wrap">
+          <input id="accessPassword" class="lock-input" type="password" autocomplete="current-password" placeholder="请输入密码" />
+          <button id="togglePasswordBtn" class="lock-input-eye" type="button" aria-label="显示或隐藏密码">👁</button>
         </div>
-
-        <div class="section">
-          <h3>项目列表</h3>
-          <div id="projectListBox" class="box small">暂无项目。</div>
+        <div class="lock-actions">
+          <button id="unlockBtn" class="primary" style="flex:1;" type="button">进入系统</button>
+          <button id="clearPasswordBtn" class="ghost lock-clear-btn" type="button">清空</button>
         </div>
-
-        <div class="section">
-          <h3>项目首页预览</h3>
-          <div id="projectDashboardBox" class="box small">保存项目后，这里会显示项目摘要、关键词和备注概览。</div>
-        </div>
-      </div>
-
-
-      <div class="card">
-        <h2>研究项目设置</h2>
-        <div class="sub">文献、写作、数据分析全部围绕同一个项目主题运行。</div>
-
-        <label for="projectName">项目名称</label>
-        <input id="projectName" placeholder="例如：新生儿胆汁淤积基因研究" />
-
-        <label for="projectTemplate">项目模板</label>
-        <select id="projectTemplate">
-          <option value="">通用科研模板</option>
-          <option value="bile_acid">胆汁酸 / 胆汁淤积模板</option>
-          <option value="thyroid">甲状腺门诊模板</option>
-          <option value="neonatal">新生儿 / 早产儿模板</option>
-          <option value="genetics">基因变异分析模板</option>
-          <option value="custom">自定义空白模板</option>
-        </select>
-
-        <div class="btns" style="margin-top:8px">
-          <button class="soft" onclick="applyProjectTemplate()">套用模板</button>
-          <button class="soft" onclick="previewTemplate()">查看模板说明</button>
-        </div>
-
-        <div id="templatePreviewBox" class="box small" style="margin-top:10px">选择模板后可查看该模板的推荐关键词、项目备注、分析重点与写作方向。</div>
-
-        <label for="keyword">关键词 / 标题 / DOI</label>
-        <textarea id="keyword" placeholder="例如：neonatal cholestasis SLC10A1 UGT1A1 或完整文章标题 / DOI"></textarea>
-
-        <div class="row">
-          <div>
-            <label for="yearFrom">起始年份</label>
-            <input id="yearFrom" placeholder="例如：2020" />
-          </div>
-          <div>
-            <label for="limit">抓取数量</label>
-            <select id="limit">
-              <option>20</option>
-              <option>40</option>
-              <option selected>60</option>
-            </select>
-          </div>
-        </div>
-
-        <label for="mode">模式</label>
-        <select id="mode">
-          <option value="pdf" selected>PDF 强化</option>
-          <option value="title">精确标题</option>
-          <option value="smart">智能检索</option>
-          <option value="review">综述模式</option>
-          <option value="gene">基因模式</option>
-        </select>
-
-        <label for="emailForApi">邮箱（用于 Unpaywall / NCBI）</label>
-        <input id="emailForApi" placeholder="you@example.com" />
-
-        <div class="btns">
-          <button class="primary" onclick="runAll()">开始科研流程</button>
-          <button class="light" onclick="fillDemo()">填入示例</button>
-          <button class="soft" onclick="saveWorkspace()">保存项目</button>
-          <button class="soft" onclick="loadWorkspace()">读取项目</button>
-          <button class="danger" onclick="clearLocalData()">清除本地数据</button>
-        </div>
-
-        <div class="stats">
-          <div class="stat"><div class="n">文献</div><div class="t">检索与 PDF</div></div>
-          <div class="stat"><div class="n">写作</div><div class="t">综述 / 前言 / 讨论</div></div>
-          <div class="stat"><div class="n">Excel</div><div class="t">上传与分析</div></div>
-          <div class="stat"><div class="n">CSV</div><div class="t">结果导出</div></div>
-        </div>
-      </div>
-
-      <div class="card section">
-        <h2>Excel 数据分析模块</h2>
-        <div class="sub">支持上传 xlsx / xls / csv。浏览器会在本地解析，不上传到服务器。</div>
-
-        <label for="excelFile">上传文件</label>
-        <input id="excelFile" type="file" accept=".xlsx,.xls,.csv" />
-
-        <div class="row">
-          <div>
-            <label for="sheetSelect">工作表</label>
-            <select id="sheetSelect"></select>
-          </div>
-          <div>
-            <label for="groupColSelect">分组列</label>
-            <select id="groupColSelect"></select>
-          </div>
-        </div>
-
-        <div class="row">
-          <div>
-            <label for="numericColSelect">数值列</label>
-            <select id="numericColSelect"></select>
-          </div>
-          <div>
-            <label for="previewRows">预览行数</label>
-            <select id="previewRows">
-              <option>10</option>
-              <option selected>20</option>
-              <option>50</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="btns">
-          <button class="primary" onclick="analyzeCurrentSheet()">分析当前表</button>
-          <button class="soft" onclick="exportDataSummary()">导出分析摘要</button>
-          <button class="soft" onclick="copyText('dataAnalysisPrompt')">复制分析提示词</button>
-        </div>
-      </div>
-
-      <div class="card section">
-        <h2>项目笔记</h2>
-        <div class="sub">记录课题结构、统计想法与提醒。</div>
-        <textarea id="projectNotes" placeholder="例如：重点关注 SLC10A1 与 UGT1A1 双诊断、胆汁酸通路与胆红素代谢交叉..."></textarea>
+        <div id="lockMessage" class="lock-msg"></div>
       </div>
     </div>
 
-    <div>
-      <div class="card">
-        <h2>科研工作台</h2>
-        <div class="sub">文献、写作和 Excel 数据分析统一在一个页面里。</div>
+    <button id="securityFab" class="primary security-fab" type="button" aria-label="密码设置">⚙</button>
 
-        <div class="box">
-          <div class="small">最佳检索词</div>
-          <div id="bestQuery" class="big">—</div>
+    <div id="securityModal" class="security-modal">
+      <div class="security-panel">
+        <h3>密码设置</h3>
+        <div class="security-grid">
+          <input id="currentPassword" type="password" autocomplete="current-password" placeholder="当前密码" />
+          <input id="newPassword" type="password" autocomplete="new-password" placeholder="新密码" />
+          <input id="confirmPassword" type="password" autocomplete="new-password" placeholder="确认新密码" />
         </div>
-
-        <div class="toolbar">
-          <span class="chip ok" id="countChip">文献数：0</span>
-          <span class="chip ok" id="oaChip">开放获取：0</span>
-          <span class="chip ok" id="doiChip">DOI：0</span>
-          <span class="chip warn" id="statusChip">待开始</span>
+        <div class="security-row">
+          <button id="changePasswordBtn" class="primary" type="button">修改密码</button>
+          <button id="resetDefaultBtn" class="ghost" type="button">恢复默认密码</button>
+          <button id="relockBtn" class="ghost" type="button">重新锁定</button>
+          <button id="closeSecurityBtn" class="ghost" type="button">关闭</button>
         </div>
+        <div id="securityMessage" class="security-note"></div>
+      </div>
+    </div>
+  <div class="wrap">
+    <div class="top-tools">
+      <button id="managePasswordBtn" class="ghost top-tool-btn" type="button">密码管理</button>
+      <button id="logoutBtn" class="ghost top-tool-btn" type="button">退出登录</button>
+    </div>
+    <div class="hero">
+      <h1>文献查询助手</h1>
+      <p>支持 DOI、文章标题、关键词检索。上方为 API 自动检索源，中部展示统一结果区，下方保留外部入口池与自定义入口，方便继续跳转到 Scholar、Scopus、CNKI 等平台做人工核对。</p>
+    </div>
 
-        <div class="tabs">
-          <div class="tab active" onclick="showTab('search', this)">文献检索</div>
-          <div class="tab" onclick="showTab('review', this)">综述生成</div>
-          <div class="tab" onclick="showTab('intro', this)">前言生成</div>
-          <div class="tab" onclick="showTab('discussion', this)">讨论扩写</div>
-          <div class="tab" onclick="showTab('refs', this)">参考文献</div>
-          <div class="tab" onclick="showTab('excel', this)">Excel 分析</div>
-          <div class="tab" onclick="showTab('report', this)">Word 报告</div>
+    <div class="section">
+      <div class="hd">自动检索 API</div>
+      <div class="featured-bar" id="apiBar"></div>
+    </div>
+
+    <div class="section">
+      <div class="hd">外部入口池与自定义入口</div>
+      <div class="bd">
+        <div class="custom-manager">
+          <input type="text" id="customName" placeholder="名称（如 My PubMed）" />
+          <input type="text" id="customUrl" placeholder="URL（自动搜索模式需包含 {q}；纯跳转模式可直接填网址）" />
+          <select id="customMode">
+            <option value="search">自动搜索（带 {q}）</option>
+            <option value="link">纯跳转（仅打开网址）</option>
+          </select>
+          <select id="customCategory">
+            <option value="general">综合</option>
+            <option value="medical">医学</option>
+            <option value="oa">全文/OA</option>
+            <option value="preprint">预印本</option>
+            <option value="doi">DOI/引文</option>
+            <option value="chinese">中文</option>
+            <option value="publisher">出版社</option>
+          </select>
+          <label class="featured-check"><input type="checkbox" id="customFeatured"> 设为常用入口</label>
+          <button class="primary" onclick="addCustomFromUI()">添加入口</button>
         </div>
-
-        <div id="panel-search" class="panel active">
-          <div class="section">
-            <h2 style="font-size:18px">平台入口</h2>
-            <div class="sub">下面 6 个入口可自行填写名称和网址。网址里可用 <span class="mono">{q}</span> 代表当前检索词，例如：<span class="mono">https://example.com/search?q={q}</span></div>
-            <div class="group">
-              <h3>自定义入口（可新增 / 删除，不限数量）</h3>
-              <div class="small" style="margin-bottom:10px">可随时新增、删除和编辑。网址里可用 <span class="mono">{q}</span> 自动代入当前检索词。</div>
-              <div id="customLinksEditor"></div>
-              <div class="btns">
-                <button class="primary" onclick="addCustomLinkRow()">＋ 新增入口</button>
-                <button class="soft" onclick="saveCustomLinks()">保存自定义入口</button>
-                <button class="soft" onclick="resetCustomLinks()">恢复默认入口</button>
-                <button class="light" onclick="fillCustomLinkExamples()">填入示例</button>
-              </div>
-              <div id="customLinksMsg" class="small" style="margin-top:8px">未保存时也可先填写，点击保存后下次会自动保留。</div>
-            </div>
-            <div id="linksBox">生成后显示。</div>
-          </div>
-
-          <div class="section">
-            <h2 style="font-size:18px">筛选</h2>
-            <div class="pillrow">
-              <span class="pill active" onclick="applyFilterMode('all', this)">全部</span>
-              <span class="pill" onclick="applyFilterMode('pdfFirst', this)">优先看有 PDF</span>
-              <span class="pill" onclick="applyFilterMode('oaOnly', this)">只看 OA</span>
-              <span class="pill" onclick="applyFilterMode('doiOnly', this)">只看 DOI</span>
-            </div>
-            <div class="toolbar">
-              <span class="chip ok yearBtn active" onclick="filterByYear('all', this)">全部</span>
-              <span class="chip ok yearBtn" onclick="filterByYear('5', this)">近5年</span>
-              <span class="chip ok yearBtn" onclick="filterByYear('5-10', this)">5–10年</span>
-              <span class="chip ok yearBtn" onclick="filterByYear('10+', this)">10年以上</span>
-            </div>
-          </div>
-
-          <div class="section">
-            <h2 style="font-size:18px">文献列表</h2>
-            <div class="tblWrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th style="width:52px">序号</th>
-                    <th>标题</th>
-                    <th style="width:90px">来源</th>
-                    <th style="width:90px">年份</th>
-                    <th style="width:160px">期刊</th>
-                    <th style="width:110px">PDF状态</th>
-                    <th style="width:220px">访问</th>
-                  </tr>
-                </thead>
-                <tbody id="paperBody">
-                  <tr><td colspan="7" class="muted">等待抓取。</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="mobileCard" id="mobileCards"><div class="muted">等待抓取。</div></div>
-          </div>
+        <div class="helper" style="margin-top:8px;">
+          说明：自定义入口属于“跳转检索”，不会进入统一结果区。支持双模式：<code>自动搜索</code> 需要在 URL 中包含 <code>{q}</code>；<code>纯跳转</code> 只保存网址，点击后直接打开。
         </div>
+        <div id="customList" class="custom-list"></div>
+      </div>
+    </div>
 
-        <div id="panel-review" class="panel">
-          <h2 style="font-size:18px">综述生成器</h2>
-          <div id="reviewPrompt" class="box small">开始科研流程后，这里会自动生成综述写作提示词。</div>
-          <div class="btns"><button class="soft" onclick="copyText('reviewPrompt')">复制综述提示词</button></div>
+    <div class="section">
+      <div class="hd">外部入口分类筛选栏</div>
+      <div class="filters" id="filters"></div>
+    </div>
+
+    <div class="section">
+      <div class="hd">外部入口池（跳转）</div>
+      <div class="grid" id="platformGrid"></div>
+    </div>
+
+    <div class="section">
+      <div class="hd">统一检索输入</div>
+      <div class="search-wrap">
+        <div class="search-box">
+          <select id="mode">
+            <option value="keyword">关键词</option>
+            <option value="title">文章题目</option>
+            <option value="doi">DOI</option>
+          </select>
+          <input class="big" type="text" id="query" placeholder="输入 DOI / 文章标题 / 关键词，例如：neonatal cholestasis SLC10A1" />
+          
+          <button class="primary" onclick="searchPapers()">开始查询</button>
         </div>
-
-        <div id="panel-intro" class="panel">
-          <h2 style="font-size:18px">前言生成器</h2>
-          <div id="introDraft" class="box small">开始科研流程后，这里会自动生成前言写作框架。</div>
-          <div class="btns"><button class="soft" onclick="copyText('introDraft')">复制前言框架</button></div>
+        <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="ghost" onclick="fillExample()">填入示例</button>
+          <button class="ghost" onclick="clearAllData()">清空</button>
+          <button class="ghost" onclick="openExternalFeatured()">打开外部常用入口</button>
         </div>
-
-        <div id="panel-discussion" class="panel">
-          <h2 style="font-size:18px">讨论扩写器</h2>
-          <div id="discussionDraft" class="box small">开始科研流程后，这里会自动生成讨论部分扩写提示词。</div>
-          <div class="btns"><button class="soft" onclick="copyText('discussionDraft')">复制讨论提示词</button></div>
+        <div class="view-switch">
+          <button class="ghost" onclick="setResultView('report')">报告视图</button>
+          <button class="ghost" onclick="setResultView('card')">卡片视图</button>
         </div>
-
-        <div id="panel-refs" class="panel">
-          <h2 style="font-size:18px">参考文献整理</h2>
-          <div id="refsBox" class="box small">开始科研流程后，这里会自动生成 Vancouver 风格参考文献。</div>
-          <div class="btns">
-            <button class="soft" onclick="copyText('refsBox')">复制参考文献</button>
-            <button class="soft" onclick="exportCSV()">导出文献 CSV</button>
-          </div>
+        <div class="helper">
+          使用逻辑：先点“开始查询”让 API 池自动返回结构化结果，再根据需要点击下方外部入口池继续到 Scholar、Scopus、CNKI 或你的自定义平台补查。
         </div>
+        <div id="status" class="status"></div>
+      </div>
+    </div>
 
-        <div id="panel-excel" class="panel">
-          <h2 style="font-size:18px">Excel 数据分析</h2>
-          <div class="section">
-            <h3>数据概览</h3>
-            <div id="dataSummaryBox" class="box small">上传并分析文件后显示。</div>
-          </div>
-          <div class="section">
-            <h3>分组统计</h3>
-            <div id="groupSummaryBox" class="box small">选择分组列和数值列后显示。</div>
-          </div>
-          <div class="section">
-            <h3>分析提示词</h3>
-            <div id="dataAnalysisPrompt" class="box small">分析当前表后，这里会生成适合你继续统计和写结果段落的提示词。</div>
-          </div>
-          <div class="section">
-            <h3>自动图表模块</h3>
-            <div class="sub">支持柱状图、折线图、饼图、散点图。先上传数据，再选择分组列和数值列后生成。</div>
+    <div class="section">
+      <div class="hd">结果</div>
+      <div class="results" id="results">
+        <div class="empty">还没有结果。请先输入 DOI、文章标题或关键词，然后点击“开始查询”。API池会自动查询，外部入口池用于继续跳转补查。</div>
+      </div>
+    </div>
 
-            <div class="row">
-              <div>
-                <label for="chartTypeSelect">图表类型</label>
-                <select id="chartTypeSelect">
-                  <option value="bar">柱状图</option>
-                  <option value="line">折线图</option>
-                  <option value="pie">饼图</option>
-                  <option value="scatter">散点图</option>
-                </select>
-              </div>
-              <div>
-                <label for="xColSelect">X 轴 / 分类列</label>
-                <select id="xColSelect"></select>
-              </div>
-            </div>
-
-            <div class="row">
-              <div>
-                <label for="yColSelect">Y 轴 / 数值列</label>
-                <select id="yColSelect"></select>
-              </div>
-              <div>
-                <label for="aggModeSelect">汇总方式</label>
-                <select id="aggModeSelect">
-                  <option value="mean">均值</option>
-                  <option value="sum">求和</option>
-                  <option value="count">计数</option>
-                  <option value="median">中位数</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="btns">
-              <button class="primary" onclick="generateChart()">生成图表</button>
-              <button class="soft" onclick="downloadChartPNG()">下载 PNG</button>
-              <button class="soft" onclick="copyText('chartInterpretationBox')">复制图表解读</button>
-            </div>
-
-            <div class="section">
-              <canvas id="analysisChart" style="max-width:100%;background:#fff;border:1px solid #e6ebf3;border-radius:14px;padding:8px"></canvas>
-            </div>
-
-            <div class="section">
-              <h3>图表解读</h3>
-              <div id="chartInterpretationBox" class="box small">生成图表后，这里会自动给出图表解读提示。</div>
-            </div>
-
-            <div class="section">
-              <h3>自动统计检验模块</h3>
-              <div class="sub">支持两组比较、多组比较与分类变量关联分析。基于浏览器本地计算。</div>
-
-              <div class="row">
-                <div>
-                  <label for="testTypeSelect">检验类型</label>
-                  <select id="testTypeSelect">
-                    <option value="ttest">两组均值比较（t 检验）</option>
-                    <option value="anova">多组均值比较（单因素 ANOVA）</option>
-                    <option value="chisq">分类变量关联（卡方检验）</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="testGroupColSelect">分组列</label>
-                  <select id="testGroupColSelect"></select>
-                </div>
-              </div>
-
-              <div class="row">
-                <div>
-                  <label for="testValueColSelect">数值列 / 分类列</label>
-                  <select id="testValueColSelect"></select>
-                </div>
-                <div>
-                  <label for="testSecondCatColSelect">第二分类列（仅卡方）</label>
-                  <select id="testSecondCatColSelect"></select>
-                </div>
-              </div>
-
-              <div class="btns">
-                <button class="primary" onclick="runStatTest()">运行统计检验</button>
-                <button class="soft" onclick="copyText('statResultBox')">复制统计结果</button>
-                <button class="soft" onclick="copyText('statInterpretationBox')">复制统计解释</button>
-              </div>
-
-              <div class="section">
-                <h3>统计结果</h3>
-                <div id="statResultBox" class="box small">运行统计检验后，这里会显示统计结果。</div>
-              </div>
-
-              <div class="section">
-                <h3>统计解释</h3>
-                <div id="statInterpretationBox" class="box small">运行统计检验后，这里会生成论文写作式解释。</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="section">
-            <h3>数据预览</h3>
-            <div class="tblWrap">
-              <table>
-                <thead id="excelPreviewHead"></thead>
-                <tbody id="excelPreviewBody"></tbody>
-              </table>
-            </div>
-          </div>
+    <div class="section">
+      <div class="hd">结果筛选 / 去重 / PDF</div>
+      <div class="bd">
+        <div id="filterPanel" class="filter-panel">
+          <div class="empty">请先执行一次检索，随后可在这里按年份区间、年月范围、去重和 PDF 条件筛选结果。</div>
         </div>
-
-        <div id="panel-report" class="panel">
-          <h2 style="font-size:18px">自动 Word / 报告导出</h2>
-          <div class="sub">把当前项目的文献检索、PDF 结果、写作提示、统计结果和 Excel 分析摘要整合成报告并导出为 Word。</div>
-
-          <div class="row">
-            <div>
-              <label for="reportTitle">报告标题</label>
-              <input id="reportTitle" placeholder="例如：新生儿胆汁淤积课题阶段性研究报告" />
-            </div>
-            <div>
-              <label for="authorName">作者 / 课题负责人</label>
-              <input id="authorName" placeholder="例如：Song" />
-            </div>
-          </div>
-
-          <label for="reportAbstract">报告摘要 / 备注</label>
-          <textarea id="reportAbstract" placeholder="可填写这次导出的重点，例如：用于组会汇报、课题立项草稿、论文初稿准备。"></textarea>
-
-          <div class="btns">
-            <button class="primary" onclick="exportWordReport()">导出 Word 报告</button>
-            <button class="light" onclick="oneClickLinkedExport()">一键联动导出</button>
-            <button class="soft" onclick="buildReportPreview()">刷新报告预览</button>
-            <button class="soft" onclick="copyText('reportPreviewBox')">复制报告预览</button>
-          </div>
-
-          <div class="section">
-            <h3>联动导出状态</h3>
-            <div id="linkedExportStatusBox" class="box small">点击“一键联动导出”后，这里会显示导出进度与内容摘要。</div>
-          </div>
-
-          <div class="section">
-            <h3>报告预览</h3>
-            <div id="reportPreviewBox" class="box small">点击“刷新报告预览”后，这里会显示将导出的报告结构。</div>
-          </div>
+        <div id="filterStats" style="padding:0 20px 10px;"></div>
+        <div id="filteredResults" class="results">
+          <div class="empty">筛选结果会显示在这里。</div>
         </div>
-
       </div>
     </div>
   </div>
-</div>
 
 <script>
-const WS_KEY = "research_system_v2_workspace";
-const EMAIL_KEY = "research_system_v2_email";
-const CUSTOM_LINKS_KEY = "research_system_v9_custom_links";
 
-const groupedPlatforms = {
-  "📊 核心数据库": [
-    ["OpenAlex", q => `https://openalex.org/works?search=${q}`],
-    ["Google Scholar", q => `https://scholar.google.com/scholar?q=${q}`],
-    ["PubMed", q => `https://pubmed.ncbi.nlm.nih.gov/?term=${q}`],
-    ["PMC", q => `https://pmc.ncbi.nlm.nih.gov/?term=${q}`],
-    ["Semantic Scholar", q => `https://www.semanticscholar.org/search?q=${q}`],
-    ["Crossref", q => `https://search.crossref.org/?q=${q}`],
-    ["Web of Science", q => `https://www.webofscience.com/wos/woscc/basic-search?search_mode=GeneralSearch&value(input1)=${q}`],
-    ["Scopus", q => `https://www.scopus.com/results/results.uri?sort=plf-f&src=s&st1=${q}`],
-    ["Europe PMC", q => `https://europepmc.org/search?query=${q}`]
-  ],
-  "📄 PDF / 开放获取": [
-    ["Google PDF", q => `https://www.google.com/search?q=${q}%20pdf`],
-    ["精确标题 + PDF", q => `https://www.google.com/search?q=%22${q}%22%20pdf`],
-    ["CORE", q => `https://core.ac.uk/search?q=${q}`],
-    ["BASE", q => `https://www.base-search.net/Search/Results?lookfor=${q}`],
-    ["ResearchGate", q => `https://www.google.com/search?q=${encodeURIComponent('"' + decodeURIComponent(q) + '" site:researchgate.net')}`]
-  ]
+let customPlatforms = [];
+let resultView = localStorage.getItem('resultView') || 'report';
+let lastSearchState = null;
+
+const apiPlatforms = [
+  {name:'PubMed',desc:'NCBI E-utilities API',type:'api'},
+  {name:'OpenAlex',desc:'OpenAlex Works API',type:'api'},
+  {name:'Crossref',desc:'Crossref REST API',type:'api'},
+  {name:'Europe PMC',desc:'Europe PMC REST API',type:'api'},
+  {name:'DOAJ',desc:'DOAJ public API',type:'api'},
+  {name:'arXiv',desc:'arXiv Atom API',type:'api'}
+];
+
+const platforms = [
+  {name:'PubMed',category:'medical',featured:true,desc:'医学数据库',url:'https://pubmed.ncbi.nlm.nih.gov/?term={q}',home:'https://pubmed.ncbi.nlm.nih.gov/'},
+  {name:'PMC',category:'oa',featured:true,desc:'免费全文',url:'https://pmc.ncbi.nlm.nih.gov/?term={q}'},
+  {name:'Google Scholar',category:'general',featured:true,desc:'综合学术检索',url:'https://scholar.google.com/scholar?q={q}'},
+  {name:'Semantic Scholar',category:'general',featured:true,desc:'AI 学术搜索',url:'https://www.semanticscholar.org/search?q={q}&sort=relevance'},
+  {name:'OpenAlex',category:'doi',featured:true,desc:'开放学术数据库',url:'https://openalex.org/works?page=1&search={q}',home:'https://openalex.org/'},
+  {name:'Crossref',category:'doi',featured:true,desc:'DOI 与元数据',url:'https://search.crossref.org/?q={q}',home:'https://search.crossref.org/'},
+  {name:'Europe PMC',category:'medical',featured:true,desc:'欧洲生物医学',url:'https://europepmc.org/search?query={q}',home:'https://europepmc.org/'},
+  {name:'DOAJ',category:'oa',featured:true,desc:'开放获取期刊',url:'https://doaj.org/search/articles?ref=homepage-search&query={q}',home:'https://doaj.org/'},
+  {name:'ResearchGate',category:'general',featured:true,desc:'作者分享平台',url:'https://www.researchgate.net/search/publication?q={q}'},
+  {name:'Scopus',category:'general',featured:true,desc:'摘要与引文',url:'https://www.scopus.com/results/results.uri?query={q}'},
+  {name:'Web of Science',category:'general',featured:false,desc:'引文检索',url:'https://www.webofscience.com/wos/woscc/basic-search?search_mode=GeneralSearch&value(input1)={q}'},
+  {name:'Dimensions',category:'general',featured:false,desc:'学术分析平台',url:'https://app.dimensions.ai/discover/publication?search_text={q}'},
+  {name:'Lens',category:'general',featured:false,desc:'学术与专利',url:'https://www.lens.org/lens/search/scholar/list?query={q}'},
+  {name:'BASE',category:'oa',featured:false,desc:'开放仓储聚合',url:'https://www.base-search.net/Search/Results?lookfor={q}'},
+  {name:'CORE',category:'oa',featured:false,desc:'开放全文聚合',url:'https://core.ac.uk/search?q={q}'},
+  {name:'Unpaywall',category:'oa',featured:false,desc:'开放获取查询',url:'https://unpaywall.org/'},
+  {name:'bioRxiv',category:'preprint',featured:false,desc:'生物预印本',url:'https://www.biorxiv.org/search/{q}%20numresults%3A10%20sort%3Arelevance-rank'},
+  {name:'medRxiv',category:'preprint',featured:false,desc:'医学预印本',url:'https://www.medrxiv.org/search/{q}%20numresults%3A10%20sort%3Arelevance-rank'},
+  {name:'arXiv',category:'preprint',featured:false,desc:'综合预印本',url:'https://arxiv.org/search/?query={q}&searchtype=all',home:'https://arxiv.org/'},
+  {name:'SSRN',category:'preprint',featured:false,desc:'社会科学预印本',url:'https://www.ssrn.com/index.cfm/en/search-results/?query={q}'},
+  {name:'ChemRxiv',category:'preprint',featured:false,desc:'化学预印本',url:'https://chemrxiv.org/engage/chemrxiv/public-dashboard?search={q}'},
+  {name:'Research Square',category:'preprint',featured:false,desc:'多学科预印本',url:'https://www.researchsquare.com/search?query={q}'},
+  {name:'Preprints.org',category:'preprint',featured:false,desc:'开放预印本',url:'https://www.preprints.org/search?query={q}'},
+  {name:'OSF Preprints',category:'preprint',featured:false,desc:'OSF 预印本',url:'https://osf.io/preprints/discover?q={q}'},
+  {name:'Cochrane Library',category:'medical',featured:false,desc:'循证医学',url:'https://www.cochranelibrary.com/advanced-search?text={q}'},
+  {name:'ClinicalTrials.gov',category:'medical',featured:false,desc:'临床试验',url:'https://clinicaltrials.gov/search?term={q}'},
+  {name:'Embase',category:'medical',featured:false,desc:'生物医学文摘',url:'https://www.embase.com/search/results?query={q}'},
+  {name:'Trip Database',category:'medical',featured:false,desc:'循证资源',url:'https://www.tripdatabase.com/search?criteria={q}'},
+  {name:'Epistemonikos',category:'medical',featured:false,desc:'系统综述',url:'https://www.epistemonikos.org/en/search?term={q}'},
+  {name:'NLM Bookshelf',category:'medical',featured:false,desc:'医学图书',url:'https://www.ncbi.nlm.nih.gov/books/?term={q}'},
+  {name:'PLOS',category:'publisher',featured:false,desc:'开放出版平台',url:'https://journals.plos.org/plosone/search?q={q}'},
+  {name:'Springer',category:'publisher',featured:false,desc:'Springer 内容',url:'https://link.springer.com/search?query={q}'},
+  {name:'Wiley',category:'publisher',featured:false,desc:'Wiley Online Library',url:'https://onlinelibrary.wiley.com/action/doSearch?AllField={q}'},
+  {name:'ScienceDirect',category:'publisher',featured:false,desc:'Elsevier 平台',url:'https://www.sciencedirect.com/search?qs={q}'},
+  {name:'Nature',category:'publisher',featured:false,desc:'Nature Portfolio',url:'https://www.nature.com/search?q={q}'},
+  {name:'Cell Press',category:'publisher',featured:false,desc:'Cell Press 平台',url:'https://www.cell.com/search?searchText={q}'},
+  {name:'Frontiers',category:'publisher',featured:false,desc:'Frontiers 检索',url:'https://www.frontiersin.org/search?query={q}'},
+  {name:'MDPI',category:'publisher',featured:false,desc:'MDPI 期刊',url:'https://www.mdpi.com/search?sort=pubdate&page_no=1&q={q}'},
+  {name:'JAMA Network',category:'publisher',featured:false,desc:'JAMA 系列',url:'https://jamanetwork.com/searchresults?q={q}'},
+  {name:'NEJM',category:'publisher',featured:false,desc:'新英格兰医学',url:'https://www.nejm.org/search?query={q}'},
+  {name:'IEEE Xplore',category:'general',featured:false,desc:'工程技术',url:'https://ieeexplore.ieee.org/search/searchresult.jsp?queryText={q}'},
+  {name:'ACM Digital Library',category:'general',featured:false,desc:'计算机学术库',url:'https://dl.acm.org/action/doSearch?AllField={q}'},
+  {name:'ERIC',category:'general',featured:false,desc:'教育文献',url:'https://eric.ed.gov/?q={q}'},
+  {name:'PsycINFO',category:'general',featured:false,desc:'心理学数据库',url:'https://psycnet.apa.org/search/results?query={q}'},
+  {name:'RePEc',category:'general',featured:false,desc:'经济学资源',url:'https://ideas.repec.org/cgi-bin/htsearch?q={q}'},
+  {name:'ORCID',category:'doi',featured:false,desc:'作者身份',url:'https://orcid.org/orcid-search/search?searchQuery={q}'},
+  {name:'OpenCitations',category:'doi',featured:false,desc:'开放引文',url:'https://opencitations.net/index/search?text={q}'},
+  {name:'DOI Resolver',category:'doi',featured:false,desc:'DOI 跳转',url:'https://doi.org/{q}'},
+  {name:'Crossmark',category:'doi',featured:false,desc:'出版状态',url:'https://search.crossref.org/?q={q}'},
+  {name:'DataCite',category:'doi',featured:false,desc:'研究数据 DOI',url:'https://commons.datacite.org/?query={q}'},
+  {name:'CNKI',category:'chinese',featured:false,desc:'中国知网',url:'https://kns.cnki.net/kns8s/search?kw={q}'},
+  {name:'万方',category:'chinese',featured:false,desc:'万方数据',url:'https://s.wanfangdata.com.cn/paper?q={q}'},
+  {name:'维普',category:'chinese',featured:false,desc:'中文期刊',url:'https://www.cqvip.com/search/search.aspx?key={q}'},
+  {name:'超星发现',category:'chinese',featured:false,desc:'中文聚合检索',url:'https://ss.zhizhen.com/s?sw={q}'},
+  {name:'国家哲学社科文献中心',category:'chinese',featured:false,desc:'中文社科资源',url:'https://www.ncpssd.cn/search?keyword={q}'},
+  {name:'国家医学知识库',category:'chinese',featured:false,desc:'医学中文资源',url:'https://www.medsci.cn/search?q={q}'},
+  {name:'中国生物医学文献服务系统',category:'chinese',featured:false,desc:'CBM 类资源',url:'https://www.sinomed.ac.cn/index.jsp?query={q}'},
+  {name:'台湾博硕士论文知识加值系统',category:'chinese',featured:false,desc:'台湾论文',url:'https://ndltd.ncl.edu.tw/cgi-bin/gs32/gsweb.cgi/search?o=dnclcdr&s={q}'},
+  {name:'Airiti Library',category:'chinese',featured:false,desc:'华艺线上图书馆',url:'https://www.airitilibrary.com/Search/alResult?Keyword={q}'},
+  {name:'香港公共图书馆',category:'chinese',featured:false,desc:'中文馆藏检索',url:'https://webcat.hkpl.gov.hk/search/query?term_1={q}'}
+];
+
+const categoryLabels = {
+  all:'全部',
+  medical:'医学',
+  general:'综合',
+  oa:'全文/OA',
+  preprint:'预印本',
+  doi:'DOI/引文',
+  chinese:'中文',
+  publisher:'出版社'
 };
 
-let allPapers = [];
-let currentResults = [];
-let currentFilterMode = "all";
-let workbook = null;
-let currentSheetName = "";
-let currentSheetRows = [];
+let activeCategory = 'all';
 
-function esc(s){ return (s||"").replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
-function enc(s){ return encodeURIComponent(s.trim()); }
-function norm(s){ return (s||"").replace(/\s+/g," ").trim(); }
-function isLikelyDOI(s){ return /^10\.\S+\/\S+$/i.test((s||"").trim()) || /^https?:\/\/doi\.org\/10\./i.test((s||"").trim()); }
-function cleanDOI(s){ return (s||"").replace(/^https?:\/\/doi\.org\//i,'').trim(); }
-function setStatus(text, cls){ const el=document.getElementById("statusChip"); el.textContent=text; el.className=`chip ${cls}`; }
-
-function makeQuery(keyword, mode, yearFrom){
-  const k = norm(keyword); let q = k;
-  if(mode === "review") q = `${k} review OR systematic review`;
-  if(mode === "gene") q = `${k} variant OR mutation OR genotype OR phenotype`;
-  if(mode === "title") q = `"${k}"`;
-  if(mode === "pdf") q = isLikelyDOI(k) ? cleanDOI(k) : `"${k}" pdf`;
-  if(yearFrom && !isLikelyDOI(k)) q += ` from ${yearFrom}`;
-  return q.trim();
+function getAllPlatforms(){ return [...platforms, ...customPlatforms]; }
+function getExternalPlatforms(){ return getAllPlatforms().filter(x => !apiPlatforms.some(a => a.name === x.name)); }
+function enc(v){ return encodeURIComponent((v || '').trim()); }
+function safeText(v){
+  if(v === null || v === undefined) return '';
+  return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
-
-function getDefaultCustomLinks(){
-  return [{name:"", url:""}];
+function getQuery(){ return document.getElementById('query').value.trim(); }
+function getSearchInput(){ return document.getElementById('query').value.trim(); }
+function normalizeDOI(v){
+  let s = (v || '').trim();
+  s = s.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '');
+  return s;
 }
-function normalizeCustomLinks(items){
-  const src = Array.isArray(items) ? items : [];
-  const cleaned = src.map(item => ({
-    name: norm(item?.name || ""),
-    url: norm(item?.url || "")
-  })).filter(item => item.name || item.url);
-  return cleaned.length ? cleaned : getDefaultCustomLinks();
+function extractYear(v){
+  const m = String(v || '').match(/(19|20)\d{2}/);
+  return m ? Number(m[0]) : null;
 }
-function loadCustomLinks(){
-  try{
-    return normalizeCustomLinks(JSON.parse(localStorage.getItem(CUSTOM_LINKS_KEY) || "[]"));
-  }catch(e){
-    return getDefaultCustomLinks();
+function extractYearMonth(v){
+  const s = String(v || '').trim();
+  const ym = s.match(/((19|20)\d{2})[-\/\. ]?(\d{1,2})/);
+  if(ym){
+    return `${ym[1]}-${String(Number(ym[3])).padStart(2,'0')}`;
   }
+  const y = s.match(/(19|20)\d{2}/);
+  return y ? `${y[0]}-01` : '';
 }
-function createCustomLinkRow(item={name:"", url:""}){
-  const row = document.createElement('div');
-  row.className = 'customLinkRow';
-  row.innerHTML = `
-    <input class="customLinkName" placeholder="入口名称，例如：SciSpace" value="${esc(item.name || "")}">
-    <input class="customLinkUrl" placeholder="入口网址，支持 {q}" value="${esc(item.url || "")}">
-    <button class="iconBtn danger" type="button">删除</button>
-  `;
-  row.querySelector('button').addEventListener('click', function(){
-    row.remove();
-    ensureAtLeastOneCustomLinkRow();
-    const msg = document.getElementById('customLinksMsg');
-    if(msg) msg.textContent = '已删除该入口，记得点击“保存自定义入口”。';
-  });
-  return row;
+function normalizeTitleKey(title){
+  return String(title || '').toLowerCase().replace(/<[^>]+>/g,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 }
-function renderCustomLinkEditor(items){
-  const box = document.getElementById('customLinksEditor');
-  if(!box) return;
-  box.innerHTML = '';
-  (items && items.length ? items : getDefaultCustomLinks()).forEach(item => box.appendChild(createCustomLinkRow(item)));
-}
-function ensureAtLeastOneCustomLinkRow(){
-  const box = document.getElementById('customLinksEditor');
-  if(box && !box.children.length){
-    box.appendChild(createCustomLinkRow());
-  }
-}
-function fillCustomLinkInputs(){
-  renderCustomLinkEditor(loadCustomLinks());
-}
-function addCustomLinkRow(item={name:"", url:""}){
-  const box = document.getElementById('customLinksEditor');
-  if(!box) return;
-  box.appendChild(createCustomLinkRow(item));
-  const msg = document.getElementById('customLinksMsg');
-  if(msg) msg.textContent = '已新增入口，编辑后记得点击“保存自定义入口”。';
-}
-function collectCustomLinksFromInputs(){
-  return normalizeCustomLinks(
-    Array.from(document.querySelectorAll('#customLinksEditor .customLinkRow')).map(row => ({
-      name: norm(row.querySelector('.customLinkName')?.value || ""),
-      url: norm(row.querySelector('.customLinkUrl')?.value || "")
-    }))
-  );
-}
-function buildCustomPlatformGroup(){
-  const custom = loadCustomLinks().filter(x => x.name && x.url);
-  if(!custom.length) return {};
-  return {
-    "⭐ 自定义入口": custom.map(item => [item.name, q => {
-      const raw = item.url;
-      if(raw.includes('{q}')) return raw.replaceAll('{q}', q);
-      return raw;
-    }])
-  };
-}
-function saveCustomLinks(){
-  const items = collectCustomLinksFromInputs();
-  localStorage.setItem(CUSTOM_LINKS_KEY, JSON.stringify(items));
-  fillCustomLinkInputs();
-  const msg = document.getElementById('customLinksMsg');
-  if(msg) msg.textContent = `自定义入口已保存（共 ${items.filter(x => x.name && x.url).length} 个有效入口）。`;
-  const currentQuery = document.getElementById('bestQuery')?.textContent?.trim();
-  if(currentQuery && currentQuery !== '—') renderGroupedLinks(currentQuery);
-}
-function resetCustomLinks(){
-  localStorage.setItem(CUSTOM_LINKS_KEY, JSON.stringify(getDefaultCustomLinks()));
-  fillCustomLinkInputs();
-  const msg = document.getElementById('customLinksMsg');
-  if(msg) msg.textContent = '已恢复为空白默认入口。';
-  const currentQuery = document.getElementById('bestQuery')?.textContent?.trim();
-  if(currentQuery && currentQuery !== '—') renderGroupedLinks(currentQuery);
-}
-function fillCustomLinkExamples(){
-  const examples = [
-    {name:'SciSpace', url:'https://typeset.io/search?q={q}'},
-    {name:'Elicit', url:'https://elicit.com/search?q={q}'},
-    {name:'Zotero', url:'https://www.zotero.org/'},
-    {name:'ChatGPT', url:'https://chatgpt.com/'},
-    {name:'Google', url:'https://www.google.com/search?q={q}'},
-    {name:'PubPeer', url:'https://pubpeer.com/search?q={q}'},
-    {name:'ResearchGate', url:'https://www.google.com/search?q={q}%20site:researchgate.net'},
-    {name:'我的主页', url:'https://example.com/search?q={q}'}
-  ];
-  renderCustomLinkEditor(examples);
-  const msg = document.getElementById('customLinksMsg');
-  if(msg) msg.textContent = '已填入示例，点击“保存自定义入口”后生效。';
-}
-function renderGroupedLinks(query){
-  const q = enc(query);
-  let html = "";
-  const mergedPlatforms = {...buildCustomPlatformGroup(), ...groupedPlatforms};
-  Object.entries(mergedPlatforms).forEach(([group, items]) => {
-    html += `<div class="group"><h3>${group}</h3><div class="groupLinks small">`;
-    html += items.map(p=>`<a target="_blank" href="${p[1](q)}">${p[0]}</a>`).join(" ｜ ");
-    html += `</div></div>`;
-  });
-  document.getElementById("linksBox").innerHTML = html;
-}
-
-function formatAuthors(arr){
-  if(!arr || !arr.length) return "";
-  return arr.slice(0,6).map(a=>{
-    if(typeof a === "string") return a;
-    if(a.author && a.author.display_name) return a.author.display_name;
-    if(a.name) return a.name;
-    return "";
-  }).filter(Boolean).join(", ") + (arr.length>6 ? ", et al" : "");
-}
-function vancouverRef(item, idx){
-  const authors = formatAuthors(item.authors) || "Unknown";
-  const year = item.year || "";
-  const title = item.title || "Untitled";
-  const journal = item.journal || "";
-  const doi = item.doi ? item.doi.replace(/^https?:\/\/doi\.org\//,'') : "";
-  return `${idx+1}. ${authors}. ${title}. ${journal}. ${year}.${doi ? " doi:"+doi+"." : ""}`;
-}
-
-function generateWritingBlocks(project, keyword, notes, items){
-  const top = items.slice(0,8).map((x,i)=>`${i+1}. ${x.title} (${x.year || 'n.d.'})`).join("\n");
-  document.getElementById("reviewPrompt").textContent =
-`请基于项目“${project || '未命名项目'}”与主题“${keyword}”撰写综述草稿。
-
-研究备注：
-${notes || '无'}
-
-代表性文献：
-${top || '暂无'}
-
-请输出：
-1. 研究背景
-2. 现有证据总结
-3. 关键机制与通路
-4. 争议点
-5. 未来研究方向
-6. 可直接用于论文前言与综述的正式段落`;
-
-  document.getElementById("introDraft").textContent =
-`前言写作框架（项目：${project || '未命名项目'}）
-
-第一段：疾病或研究主题的重要性与临床负担
-第二段：当前机制认识与关键分子/通路
-第三段：现有研究空白与争议
-第四段：本研究关注的问题、创新点与意义
-
-建议重点词：
-${keyword}
-
-建议融入的项目备注：
-${notes || '无'}`;
-
-  document.getElementById("discussionDraft").textContent =
-`讨论部分扩写提示词（项目：${project || '未命名项目'}）
-
-请围绕以下结构扩写讨论：
-1. 主要发现总结
-2. 与既往研究一致或不一致之处
-3. 可能机制解释
-4. 临床或生物学意义
-5. 研究优势
-6. 研究局限
-7. 未来方向
-
-本研究主题：
-${keyword}
-
-项目备注：
-${notes || '无'}`;
-}
-
-function updateStats(items){
-  const oa = items.filter(x=>x.oaPdf || x.pdf).length;
-  const doi = items.filter(x=>x.doi).length;
-  document.getElementById("countChip").textContent = `文献数：${items.length}`;
-  document.getElementById("oaChip").textContent = `开放获取：${oa}`;
-  document.getElementById("doiChip").textContent = `DOI：${doi}`;
-}
-
-function pdfStateBadge(x){
-  if(x.oaPdf) return '<span class="chip ok">OA PDF</span>';
-  if(x.pdf) return '<span class="chip ok">PDF</span>';
-  if(x.doi) return '<span class="chip warn">有 DOI</span>';
-  return '<span class="chip bad">未找到</span>';
-}
-function accessLinks(x){
-  const links = [];
-  if(x.oaPdf) links.push(`<a target="_blank" href="${x.oaPdf}">OA PDF</a>`);
-  else if(x.pdf) links.push(`<a target="_blank" href="${x.pdf}">PDF</a>`);
-  if(x.pmidUrl) links.push(`<a target="_blank" href="${x.pmidUrl}">PubMed</a>`);
-  if(x.pmc) links.push(`<a target="_blank" href="${x.pmc}">PMC</a>`);
-  if(x.doi) links.push(`<a target="_blank" href="${x.doi}">DOI</a>`);
-  links.push(`<a target="_blank" href="https://www.google.com/search?q=${encodeURIComponent((x.title || '') + ' pdf')}">Google PDF</a>`);
-  return links.join(" | ");
-}
-function renderPapers(items){
-  const body = document.getElementById("paperBody");
-  const cards = document.getElementById("mobileCards");
-  if(!items.length){
-    body.innerHTML = '<tr><td colspan="7" class="muted">没有抓到结果。可调整关键词、标题或 DOI 后重试。</td></tr>';
-    cards.innerHTML = '<div class="muted">没有抓到结果。可调整关键词、标题或 DOI 后重试。</div>';
-    return;
-  }
-  body.innerHTML = items.map((x,i)=>{
-    const link = x.oaPdf || x.pdf || x.doi || x.landing || x.pmidUrl || "#";
-    return `<tr>
-      <td>${i+1}</td>
-      <td><a class="titleLink" target="_blank" href="${link}">${esc(x.title || "Untitled")}</a><div class="small">${esc(formatAuthors(x.authors))}</div></td>
-      <td>${esc(x.source || "")}</td>
-      <td>${x.year || ""}</td>
-      <td>${esc(x.journal || "")}</td>
-      <td>${pdfStateBadge(x)}</td>
-      <td>${accessLinks(x)}</td>
-    </tr>`;
-  }).join("");
-  cards.innerHTML = items.map((x,i)=>{
-    const link = x.oaPdf || x.pdf || x.doi || x.landing || x.pmidUrl || "#";
-    return `<div class="mobileItem">
-      <div class="t"><a class="titleLink" target="_blank" href="${link}">${i+1}. ${esc(x.title || "Untitled")}</a></div>
-      <div class="small">${esc(formatAuthors(x.authors))}</div>
-      <div class="small">来源：${esc(x.source || "")} ｜ 年份：${x.year || ""} ｜ 期刊：${esc(x.journal || "")}</div>
-      <div style="margin-top:8px">${pdfStateBadge(x)}</div>
-      <div class="small" style="margin-top:6px">${accessLinks(x)}</div>
-    </div>`;
-  }).join("");
-}
-function renderRefs(items){
-  document.getElementById("refsBox").textContent = items.map((x,i)=>vancouverRef(x,i)).join("\n") || "暂无。";
-}
-
-function setYearBtnActive(el){ document.querySelectorAll('.yearBtn').forEach(b => b.classList.remove('active')); if(el) el.classList.add('active'); }
-function applyYearFilter(items, type){
-  const now = new Date().getFullYear();
-  return (items || []).filter(x => {
-    const y = x.year || 0;
-    if(type === "5") return y >= now - 5;
-    if(type === "5-10") return y < now - 5 && y >= now - 10;
-    if(type === "10+") return y < now - 10;
+function uniqueUrls(list){
+  const seen = new Set();
+  return (list || []).filter(x => {
+    if(!x || !x.url) return false;
+    const key = `${x.label}|${x.url}`;
+    if(seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 }
-function applySecondaryFilter(items){
-  if(currentFilterMode === "pdfFirst") return items.filter(x => x.oaPdf || x.pdf);
-  if(currentFilterMode === "oaOnly") return items.filter(x => x.oaPdf);
-  if(currentFilterMode === "doiOnly") return items.filter(x => x.doi);
-  return items;
-}
-function rerenderFromAll(){
-  const activeYear = document.querySelector('.yearBtn.active');
-  let type = 'all';
-  if(activeYear){
-    const txt = activeYear.textContent.trim();
-    if(txt === '近5年') type = '5';
-    else if(txt === '5–10年') type = '5-10';
-    else if(txt === '10年以上') type = '10+';
+function platformUrl(p){
+  if((p.mode || 'search') === 'link') return p.url;
+  const q = getQuery();
+  if(!q){
+    if(p.home) return p.home;
+    if(p.url.includes('{q}')) return '#';
+    return p.url;
   }
-  let filtered = applyYearFilter(allPapers, type);
-  filtered = applySecondaryFilter(filtered);
-  currentResults = filtered;
-  renderPapers(filtered);
-  renderRefs(filtered);
-  updateStats(filtered);
+  return p.url.includes('{q}') ? p.url.replace('{q}', enc(q)) : p.url;
 }
-function filterByYear(type, el){ setYearBtnActive(el); rerenderFromAll(); }
-function applyFilterMode(mode, el){
-  currentFilterMode = mode;
-  document.querySelectorAll('.pillrow .pill').forEach(p => p.classList.remove('active'));
-  if(el) el.classList.add('active');
-  rerenderFromAll();
+function renderApiBar(){
+  const box = document.getElementById('apiBar');
+  box.innerHTML = apiPlatforms.map(x => {
+    const match = platforms.find(p => p.name === x.name);
+    const href = match ? platformUrl(match) : '#';
+    return `<a class="featured-btn" target="_blank" rel="noopener noreferrer" href="${href}" title="${safeText(x.desc)}">${safeText(x.name)}</a>`;
+  }).join('');
 }
-
-async function enrichUnpaywall(items, email){
-  if(!email) return items;
-  const subset = items.filter(x => x.doi).slice(0, 25);
-  const doiMap = new Map();
-  await Promise.all(subset.map(async item => {
-    try{
-      const api = `https://api.unpaywall.org/v2/${encodeURIComponent(cleanDOI(item.doi))}?email=${encodeURIComponent(email)}`;
-      const res = await fetch(api);
-      if(!res.ok) return;
-      const data = await res.json();
-      doiMap.set(item.doi, {oaPdf: data?.best_oa_location?.url_for_pdf || ""});
-    }catch(e){}
-  }));
-  return items.map(x => doiMap.has(x.doi) ? {...x, oaPdf: doiMap.get(x.doi).oaPdf || x.oaPdf || ""} : x);
+function renderFilters(){
+  const box = document.getElementById('filters');
+  const keys = ['all','medical','general','oa','preprint','doi','chinese','publisher'];
+  box.innerHTML = keys.map(k => `<button class="filter-btn ${activeCategory===k?'active':''}" onclick="setCategory('${k}')">${categoryLabels[k]}</button>`).join('');
 }
-async function fetchOpenAlex(query, limit, yearFrom){
-  let results = [], page = 1, perPage = Math.min(25, limit);
-  while(results.length < limit){
-    let api = `https://api.openalex.org/works?search=${enc(query)}&per-page=${perPage}&page=${page}&mailto=example@example.com`;
-    if(yearFrom && !isLikelyDOI(query)) api += `&filter=from_publication_date:${yearFrom}-01-01`;
-    const res = await fetch(api);
-    if(!res.ok) throw new Error("OpenAlex 请求失败");
-    const data = await res.json();
-    const chunk = (data.results || []).map(x => ({
-      source:"OpenAlex", title:x.title || "", authors:x.authorships || [], year:x.publication_year || "",
-      journal:x.primary_location?.source?.display_name || "", doi:x.doi || "", landing:x.id || "",
-      pdf:x.best_oa_location?.pdf_url || x.primary_location?.pdf_url || "", oaPdf:x.best_oa_location?.pdf_url || "",
-      pmc:x.primary_location?.landing_page_url?.includes("pmc.ncbi.nlm.nih.gov") ? x.primary_location.landing_page_url : "", pmidUrl:""
-    }));
-    results = results.concat(chunk);
-    if(!chunk.length || !data.meta || results.length >= data.meta.count || page > 10) break;
-    page += 1;
-  }
-  return results.slice(0, limit);
-}
-async function fetchPubMed(query, limit){
-  let esearch = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=${limit}&term=${enc(query)}`;
-  const sRes = await fetch(esearch);
-  if(!sRes.ok) return [];
-  const sData = await sRes.json();
-  const ids = sData?.esearchresult?.idlist || [];
-  if(!ids.length) return [];
-  const sumUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=${ids.join(",")}`;
-  const sumRes = await fetch(sumUrl);
-  if(!sumRes.ok) return [];
-  const sumData = await sumRes.json();
-  const out = [];
-  ids.forEach(id => {
-    const x = sumData?.result?.[id];
-    if(!x) return;
-    const articleIds = x.articleids || [];
-    const doiObj = articleIds.find(a => String(a.idtype).toLowerCase() === "doi");
-    const pmcObj = articleIds.find(a => String(a.idtype).toLowerCase() === "pmc");
-    out.push({
-      source:"PubMed", title:x.title || "", authors:(x.authors || []).map(a => ({name:a.name || ""})),
-      year:parseInt((x.pubdate || "").match(/\d{4}/)?.[0] || "") || "", journal:x.fulljournalname || x.source || "",
-      doi:doiObj ? `https://doi.org/${doiObj.value}` : "", landing:"", pdf:"", oaPdf:"",
-      pmc:pmcObj ? `https://pmc.ncbi.nlm.nih.gov/articles/${pmcObj.value}/` : "", pmidUrl:`https://pubmed.ncbi.nlm.nih.gov/${id}/`
-    });
-  });
-  return out;
-}
-function mergeDedup(a, b){
-  const seen = new Set(); const out = [];
-  [...a, ...b].forEach(item => {
-    const key = item.doi || item.title;
-    if(!key || seen.has(key)) return;
-    seen.add(key); out.push(item);
-  });
-  return out;
-}
-function summarizePdf(items, rawQuery){
-  const direct = items.find(x => x.oaPdf) || items.find(x => x.pdf);
-  const doi = items.find(x => x.doi);
-  const pmc = items.find(x => x.pmc);
-  const arr = [];
-  if(direct) arr.push(`<div><span class="chip ok">优先路径</span> <a target="_blank" href="${direct.oaPdf || direct.pdf}">直接打开 PDF</a></div>`);
-  else arr.push(`<div><span class="chip bad">当前未找到直接 PDF</span></div>`);
-  if(doi) arr.push(`<div style="margin-top:8px"><span class="chip warn">后备 1</span> <a target="_blank" href="${doi.doi}">DOI 页面</a></div>`);
-  if(pmc) arr.push(`<div style="margin-top:8px"><span class="chip ok">后备 2</span> <a target="_blank" href="${pmc.pmc}">PMC 页面</a></div>`);
-  arr.push(`<div style="margin-top:8px"><span class="chip warn">后备 3</span> <a target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(rawQuery + ' pdf')}">Google PDF 搜索</a></div>`);
-  document.getElementById("pdfSummary").innerHTML = arr.join("");
-}
-async function runAll(){
-  const project = norm(document.getElementById("projectName").value);
-  const keyword = norm(document.getElementById("keyword").value);
-  const yearFrom = norm(document.getElementById("yearFrom").value);
-  const limit = parseInt(document.getElementById("limit").value,10) || 60;
-  const mode = document.getElementById("mode").value;
-  const email = norm(document.getElementById("emailForApi").value);
-  const notes = norm(document.getElementById("projectNotes").value);
-  if(!keyword){ alert("请先输入关键词、标题或 DOI。"); return; }
-
-  localStorage.setItem(EMAIL_KEY, email);
-  const query = makeQuery(keyword, mode, yearFrom);
-  document.getElementById("bestQuery").textContent = query;
-  renderGroupedLinks(query);
-  setStatus("抓取中","warn");
-  document.getElementById("paperBody").innerHTML = '<tr><td colspan="7" class="muted">正在抓取数据，请稍候…</td></tr>';
-
-  try{
-    const [oa, pm] = await Promise.all([fetchOpenAlex(query, limit, yearFrom), fetchPubMed(query, Math.min(limit, 30))]);
-    let merged = mergeDedup(oa, pm).slice(0, limit);
-    merged = await enrichUnpaywall(merged, email);
-    allPapers = merged; currentResults = merged; currentFilterMode = "all";
-    document.querySelectorAll('.pillrow .pill').forEach((p,idx)=>p.classList.toggle('active', idx===0));
-    document.querySelectorAll('.yearBtn').forEach((p,idx)=>p.classList.toggle('active', idx===0));
-    rerenderFromAll();
-    summarizePdf(merged, keyword);
-    generateWritingBlocks(project, keyword, notes, merged);
-    setStatus("完成","ok");
-  }catch(err){
-    setStatus("失败","warn");
-    document.getElementById("paperBody").innerHTML = `<tr><td colspan="7" class="muted">抓取失败：${esc(err.message)}</td></tr>`;
-    document.getElementById("pdfSummary").innerHTML = `<span class="chip bad">失败</span> ${esc(err.message)}`;
-  }
-}
-
-function saveWorkspace(){
-  const data = {
-    projectName: document.getElementById("projectName").value,
-    keyword: document.getElementById("keyword").value,
-    yearFrom: document.getElementById("yearFrom").value,
-    limit: document.getElementById("limit").value,
-    mode: document.getElementById("mode").value,
-    email: document.getElementById("emailForApi").value,
-    notes: document.getElementById("projectNotes").value
-  };
-  localStorage.setItem(WS_KEY, JSON.stringify(data));
-  alert("项目已保存。");
-}
-function loadWorkspace(){
-  const raw = localStorage.getItem(WS_KEY);
-  if(!raw){ alert("暂无已保存项目。"); return; }
-  const data = JSON.parse(raw);
-  document.getElementById("projectName").value = data.projectName || "";
-  document.getElementById("keyword").value = data.keyword || "";
-  document.getElementById("yearFrom").value = data.yearFrom || "";
-  document.getElementById("limit").value = data.limit || "60";
-  document.getElementById("mode").value = data.mode || "pdf";
-  document.getElementById("emailForApi").value = data.email || "";
-  document.getElementById("projectNotes").value = data.notes || "";
-  alert("项目已读取。");
-}
-function clearLocalData(){
-  [WS_KEY, EMAIL_KEY].forEach(k=>localStorage.removeItem(k));
-  alert("本地项目数据已清除。");
-}
-function fillDemo(){
-  document.getElementById("projectTemplate").value = "bile_acid";
-  document.getElementById("projectName").value = "新生儿胆汁淤积基因研究";
-  document.getElementById("keyword").value = "neonatal cholestasis SLC10A1 UGT1A1";
-  document.getElementById("yearFrom").value = "2020";
-  document.getElementById("limit").value = "40";
-  document.getElementById("mode").value = "gene";
-  document.getElementById("projectNotes").value = "重点关注胆汁酸转运、胆红素代谢交叉、双诊断与良性代谢表型。";
-}
-function copyText(id){
-  const txt = document.getElementById(id).textContent.trim();
-  if(!txt || txt === "暂无。"){ alert("当前没有可复制内容。"); return; }
-  navigator.clipboard.writeText(txt).then(()=>alert("已复制。"));
-}
-function showTab(name, el){
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('panel-' + name).classList.add('active');
-}
-function exportCSV(){
-  if(!currentResults.length){ alert("还没有文献可导出。"); return; }
-  const rows = [["No","Title","Authors","Source","Year","Journal","DOI","OA PDF","PDF","PMID URL","PMC"]];
-  currentResults.forEach((x,i)=>rows.push([i+1, x.title || "", formatAuthors(x.authors), x.source || "", x.year || "", x.journal || "", x.doi || "", x.oaPdf || "", x.pdf || "", x.pmidUrl || "", x.pmc || ""]));
-  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
-  const blob = new Blob(["\ufeff"+csv], {type:"text/csv;charset=utf-8;"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "research_system_v2_literature.csv";
-  a.click(); URL.revokeObjectURL(a.href);
-}
-
-/* Excel module */
-document.getElementById("excelFile").addEventListener("change", handleExcelUpload);
-document.getElementById("sheetSelect").addEventListener("change", () => loadSheetRows(document.getElementById("sheetSelect").value));
-
-async function handleExcelUpload(evt){
-  const file = evt.target.files[0];
-  if(!file) return;
-  const data = await file.arrayBuffer();
-  workbook = XLSX.read(data, {type: "array"});
-  const sheetSelect = document.getElementById("sheetSelect");
-  sheetSelect.innerHTML = workbook.SheetNames.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
-  currentSheetName = workbook.SheetNames[0] || "";
-  loadSheetRows(currentSheetName);
-  showTab('excel', document.querySelectorAll('.tab')[5]);
-}
-
-function loadSheetRows(sheetName){
-  if(!workbook || !sheetName) return;
-  currentSheetName = sheetName;
-  const ws = workbook.Sheets[sheetName];
-  currentSheetRows = XLSX.utils.sheet_to_json(ws, {defval: ""});
-  populateColumnSelectors();
-  populateChartSelectors();
-  populateStatSelectors();
-  renderExcelPreview();
-}
-
-function populateColumnSelectors(){
-  const cols = currentSheetRows.length ? Object.keys(currentSheetRows[0]) : [];
-  const groupSel = document.getElementById("groupColSelect");
-  const numSel = document.getElementById("numericColSelect");
-  groupSel.innerHTML = `<option value="">不分组</option>` + cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
-  numSel.innerHTML = `<option value="">自动选择</option>` + cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
-}
-
-function guessNumericColumns(rows){
-  if(!rows.length) return [];
-  const cols = Object.keys(rows[0]);
-  return cols.filter(c => {
-    const vals = rows.map(r => r[c]).filter(v => v !== "" && v !== null && v !== undefined);
-    if(!vals.length) return false;
-    const numericCount = vals.filter(v => !isNaN(parseFloat(v)) && isFinite(v)).length;
-    return numericCount / vals.length >= 0.8;
-  });
-}
-
-function describeNumeric(values){
-  const nums = values.map(v => parseFloat(v)).filter(v => !isNaN(v));
-  if(!nums.length) return null;
-  nums.sort((a,b)=>a-b);
-  const mean = nums.reduce((a,b)=>a+b,0)/nums.length;
-  const median = nums.length % 2 ? nums[(nums.length-1)/2] : (nums[nums.length/2-1]+nums[nums.length/2])/2;
-  return {
-    n: nums.length,
-    min: nums[0],
-    max: nums[nums.length-1],
-    mean: mean,
-    median: median
-  };
-}
-
-function renderExcelPreview(){
-  const head = document.getElementById("excelPreviewHead");
-  const body = document.getElementById("excelPreviewBody");
-  if(!currentSheetRows.length){
-    head.innerHTML = "";
-    body.innerHTML = `<tr><td class="muted">当前表无数据。</td></tr>`;
-    return;
-  }
-  const cols = Object.keys(currentSheetRows[0]);
-  head.innerHTML = `<tr>${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr>`;
-  const n = parseInt(document.getElementById("previewRows").value, 10) || 20;
-  body.innerHTML = currentSheetRows.slice(0, n).map(r => `<tr>${cols.map(c => `<td>${esc(String(r[c] ?? ""))}</td>`).join("")}</tr>`).join("");
-}
-
-function analyzeCurrentSheet(){
-  if(!currentSheetRows.length){
-    alert("请先上传并读取 Excel / CSV 文件。");
-    return;
-  }
-  const cols = Object.keys(currentSheetRows[0] || {});
-  const numCols = guessNumericColumns(currentSheetRows);
-  const selectedNum = document.getElementById("numericColSelect").value || (numCols[0] || "");
-  const selectedGroup = document.getElementById("groupColSelect").value || "";
-
-  let summary = [];
-  summary.push(`工作表：${currentSheetName}`);
-  summary.push(`总行数：${currentSheetRows.length}`);
-  summary.push(`字段数：${cols.length}`);
-  summary.push(`字段：${cols.join("、") || "无"}`);
-  summary.push(`推测数值列：${numCols.join("、") || "无"}`);
-
-  if(selectedNum){
-    const desc = describeNumeric(currentSheetRows.map(r => r[selectedNum]));
-    if(desc){
-      summary.push(`数值列“${selectedNum}”统计：n=${desc.n}，最小值=${desc.min}，最大值=${desc.max}，均值=${desc.mean.toFixed(2)}，中位数=${desc.median.toFixed(2)}`);
-    }
-  }
-
-  document.getElementById("dataSummaryBox").textContent = summary.join("\n");
-
-  if(selectedGroup){
-    const groups = {};
-    currentSheetRows.forEach(r => {
-      const g = String(r[selectedGroup] ?? "空值");
-      if(!groups[g]) groups[g] = [];
-      groups[g].push(r);
-    });
-
-    let groupText = [];
-    Object.entries(groups).forEach(([g, rows]) => {
-      groupText.push(`组别：${g}，例数：${rows.length}`);
-      if(selectedNum){
-        const desc = describeNumeric(rows.map(r => r[selectedNum]));
-        if(desc){
-          groupText.push(`  ${selectedNum}：均值=${desc.mean.toFixed(2)}，中位数=${desc.median.toFixed(2)}，范围=${desc.min}–${desc.max}`);
-        }
-      }
-    });
-    document.getElementById("groupSummaryBox").textContent = groupText.join("\n") || "当前分组无可显示结果。";
-  } else {
-    document.getElementById("groupSummaryBox").textContent = "未选择分组列。";
-  }
-
-  const project = norm(document.getElementById("projectName").value);
-  const notes = norm(document.getElementById("projectNotes").value);
-  document.getElementById("dataAnalysisPrompt").textContent =
-`请基于以下 Excel 数据概况，帮助我设计进一步分析并写结果段落。
-
-项目名称：${project || '未命名项目'}
-工作表：${currentSheetName}
-总行数：${currentSheetRows.length}
-字段：${cols.join("、")}
-推测数值列：${numCols.join("、") || '无'}
-分组列：${selectedGroup || '未选择'}
-重点数值列：${selectedNum || '未选择'}
-
-项目备注：
-${notes || '无'}
-
-请输出：
-1. 推荐的统计分析思路
-2. 适合做图的变量组合
-3. 可写入论文结果部分的段落框架
-4. 需要补充清洗或核对的数据点
-5. 若是基因/临床数据，建议如何做分层比较`;
-}
-
-function exportDataSummary(){
-  const text = [
-    document.getElementById("dataSummaryBox").textContent,
-    "",
-    document.getElementById("groupSummaryBox").textContent,
-    "",
-    document.getElementById("dataAnalysisPrompt").textContent
-  ].join("\n");
-  if(!text.trim()){
-    alert("还没有可导出的分析摘要。");
-    return;
-  }
-  const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "research_system_v2_data_summary.txt";
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-document.getElementById("emailForApi").value = localStorage.getItem(EMAIL_KEY) || "";
-
-let analysisChart = null;
-
-function populateChartSelectors(){
-  const cols = currentSheetRows.length ? Object.keys(currentSheetRows[0]) : [];
-  const numericCols = guessNumericColumns(currentSheetRows);
-
-  const xSel = document.getElementById("xColSelect");
-  const ySel = document.getElementById("yColSelect");
-  if(xSel) xSel.innerHTML = `<option value="">自动选择</option>` + cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
-  if(ySel) ySel.innerHTML = `<option value="">自动选择</option>` + cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
-
-  if(xSel && cols.length && !xSel.value) xSel.value = cols[0];
-  if(ySel && numericCols.length && !ySel.value) ySel.value = numericCols[0];
-}
-
-function median(nums){
-  const arr = nums.filter(v => !isNaN(v)).sort((a,b)=>a-b);
-  if(!arr.length) return NaN;
-  const m = Math.floor(arr.length/2);
-  return arr.length % 2 ? arr[m] : (arr[m-1] + arr[m]) / 2;
-}
-
-function aggregateValues(values, mode){
-  const nums = values.map(v => parseFloat(v)).filter(v => !isNaN(v));
-  if(mode === "count") return values.filter(v => v !== "" && v !== null && v !== undefined).length;
-  if(!nums.length) return NaN;
-  if(mode === "sum") return nums.reduce((a,b)=>a+b,0);
-  if(mode === "median") return median(nums);
-  return nums.reduce((a,b)=>a+b,0) / nums.length;
-}
-
-function prepareChartData(rows, xCol, yCol, chartType, aggMode){
-  if(!rows.length) return null;
-  const grouped = {};
-  rows.forEach(r => {
-    const key = xCol ? String(r[xCol] ?? "空值") : "全部";
-    if(!grouped[key]) grouped[key] = [];
-    grouped[key].push(yCol ? r[yCol] : 1);
-  });
-
-  let labels = Object.keys(grouped);
-  if(labels.length > 30 && chartType !== "scatter"){
-    labels = labels.slice(0, 30);
-  }
-
-  if(chartType === "scatter"){
-    const pts = rows
-      .map(r => ({x: parseFloat(r[xCol]), y: parseFloat(r[yCol])}))
-      .filter(p => !isNaN(p.x) && !isNaN(p.y))
-      .slice(0, 200);
-    return {labels: [], datasets: [{label: `${yCol} vs ${xCol}`, data: pts}]};
-  }
-
-  const data = labels.map(k => aggregateValues(grouped[k], aggMode));
-  return {labels, datasets: [{label: yCol || "计数", data}]};
-}
-
-function makeChartInterpretation(chartType, xCol, yCol, aggMode, chartData){
-  if(!chartData) return "当前数据不足以生成图表。";
-  if(chartType === "scatter"){
-    return `请基于散点图分析 ${xCol} 与 ${yCol} 的相关趋势、离群点和潜在线性关系，并判断是否需要进一步做相关性或回归分析。`;
-  }
-  const topIdx = chartData.datasets[0].data
-    .map((v,i)=>({v,i}))
-    .filter(o => !isNaN(o.v))
-    .sort((a,b)=>b.v-a.v)[0];
-  const topLabel = topIdx ? chartData.labels[topIdx.i] : "无";
-  const topValue = topIdx ? chartData.datasets[0].data[topIdx.i] : "无";
-  return `当前图表类型为${chartType}，X 轴为 ${xCol}，Y 轴为 ${yCol || "计数"}，汇总方式为${aggMode}。请重点关注不同组之间的差异趋势、最高值对应组别，以及是否存在明显分层。当前最高组别为 ${topLabel}，对应值为 ${topValue}。`;
-}
-
-function generateChart(){
-  if(!currentSheetRows.length){
-    alert("请先上传并读取 Excel / CSV 文件。");
-    return;
-  }
-  const chartType = document.getElementById("chartTypeSelect").value;
-  const cols = Object.keys(currentSheetRows[0] || {});
-  const numericCols = guessNumericColumns(currentSheetRows);
-
-  const xCol = document.getElementById("xColSelect").value || cols[0];
-  let yCol = document.getElementById("yColSelect").value || (numericCols[0] || "");
-  const aggMode = document.getElementById("aggModeSelect").value;
-
-  if(chartType !== "scatter" && !yCol && aggMode !== "count"){
-    alert("请至少选择一个数值列作为 Y 轴。");
-    return;
-  }
-  if(chartType === "pie" && !xCol){
-    alert("饼图需要选择一个分类列。");
-    return;
-  }
-  if(chartType === "scatter" && (!xCol || !yCol)){
-    alert("散点图需要同时选择 X 列和 Y 列。");
-    return;
-  }
-
-  const chartData = prepareChartData(currentSheetRows, xCol, yCol, chartType, aggMode);
-  const ctx = document.getElementById("analysisChart").getContext("2d");
-  if(analysisChart) analysisChart.destroy();
-
-  const config = {
-    type: chartType,
-    data: chartData,
-    options: {
-      responsive: true,
-      plugins: { legend: { display: true } },
-      scales: chartType === "pie" ? {} : { y: { beginAtZero: true } }
-    }
-  };
-  analysisChart = new Chart(ctx, config);
-
-  document.getElementById("chartInterpretationBox").textContent =
-    makeChartInterpretation(chartType, xCol, yCol || "计数", aggMode, chartData);
-}
-
-function downloadChartPNG(){
-  if(!analysisChart){
-    alert("请先生成图表。");
-    return;
-  }
-  const a = document.createElement("a");
-  a.href = analysisChart.toBase64Image();
-  a.download = "research_system_chart.png";
-  a.click();
-}
-
-
-function populateStatSelectors(){
-  const cols = currentSheetRows.length ? Object.keys(currentSheetRows[0]) : [];
-  const numCols = guessNumericColumns(currentSheetRows);
-  const groupSel = document.getElementById("testGroupColSelect");
-  const valSel = document.getElementById("testValueColSelect");
-  const secondSel = document.getElementById("testSecondCatColSelect");
-  if(groupSel) groupSel.innerHTML = `<option value="">自动选择</option>` + cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
-  if(valSel) valSel.innerHTML = `<option value="">自动选择</option>` + cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
-  if(secondSel) secondSel.innerHTML = `<option value="">不选择</option>` + cols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
-  if(groupSel && cols.length && !groupSel.value) groupSel.value = cols[0];
-  if(valSel && numCols.length && !valSel.value) valSel.value = numCols[0];
-}
-
-function mean(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length; }
-function variance(arr){
-  if(arr.length < 2) return NaN;
-  const m = mean(arr);
-  return arr.reduce((s,x)=>s+(x-m)*(x-m),0)/(arr.length-1);
-}
-function formatP(p){
-  if(isNaN(p)) return "NA";
-  if(p < 0.001) return "<0.001";
-  return p.toFixed(4);
-}
-
-function tTestTwoSample(a, b){
-  const x = a.filter(v => !isNaN(v));
-  const y = b.filter(v => !isNaN(v));
-  if(x.length < 2 || y.length < 2) return null;
-  const mx = mean(x), my = mean(y);
-  const vx = variance(x), vy = variance(y);
-  const nx = x.length, ny = y.length;
-  const se = Math.sqrt(vx/nx + vy/ny);
-  const t = (mx - my) / se;
-  const df_num = Math.pow(vx/nx + vy/ny, 2);
-  const df_den = (Math.pow(vx/nx,2)/(nx-1)) + (Math.pow(vy/ny,2)/(ny-1));
-  const df = df_num / df_den;
-  const p = 2 * (1 - jStat.studentt.cdf(Math.abs(t), df));
-  return {t, df, p, mx, my, nx, ny};
-}
-
-function anovaOneWay(groups){
-  const validGroups = Object.entries(groups).map(([k,v]) => [k, v.filter(x => !isNaN(x))]).filter(([_,v]) => v.length >= 2);
-  if(validGroups.length < 2) return null;
-  const all = validGroups.flatMap(([_,v]) => v);
-  const grandMean = mean(all);
-  let ssBetween = 0, ssWithin = 0, nTotal = 0;
-  validGroups.forEach(([k, vals]) => {
-    const m = mean(vals);
-    ssBetween += vals.length * Math.pow(m - grandMean, 2);
-    ssWithin += vals.reduce((s,x)=>s+Math.pow(x-m,2),0);
-    nTotal += vals.length;
-  });
-  const dfBetween = validGroups.length - 1;
-  const dfWithin = nTotal - validGroups.length;
-  const msBetween = ssBetween / dfBetween;
-  const msWithin = ssWithin / dfWithin;
-  const F = msBetween / msWithin;
-  const p = 1 - jStat.centralF.cdf(F, dfBetween, dfWithin);
-  return {F, p, dfBetween, dfWithin, groups: validGroups};
-}
-
-function chiSquareTest(rows, colA, colB){
-  const levelsA = [...new Set(rows.map(r => String(r[colA] ?? "空值")))];
-  const levelsB = [...new Set(rows.map(r => String(r[colB] ?? "空值")))];
-  if(levelsA.length < 2 || levelsB.length < 2) return null;
-  const obs = levelsA.map(a => levelsB.map(b => rows.filter(r => String(r[colA] ?? "空值")===a && String(r[colB] ?? "空值")===b).length));
-  const rowSums = obs.map(r => r.reduce((a,b)=>a+b,0));
-  const colSums = levelsB.map((_,j)=>obs.reduce((s,row)=>s+row[j],0));
-  const total = rowSums.reduce((a,b)=>a+b,0);
-  let chi2 = 0;
-  for(let i=0;i<levelsA.length;i++){
-    for(let j=0;j<levelsB.length;j++){
-      const expected = rowSums[i]*colSums[j]/total;
-      if(expected > 0) chi2 += Math.pow(obs[i][j]-expected,2)/expected;
-    }
-  }
-  const df = (levelsA.length-1)*(levelsB.length-1);
-  const p = 1 - jStat.chisquare.cdf(chi2, df);
-  return {chi2, df, p, levelsA, levelsB, obs};
-}
-
-function runStatTest(){
-  if(!currentSheetRows.length){
-    alert("请先上传并读取 Excel / CSV 文件。");
-    return;
-  }
-  const testType = document.getElementById("testTypeSelect").value;
-  const cols = Object.keys(currentSheetRows[0] || {});
-  const numCols = guessNumericColumns(currentSheetRows);
-  const groupCol = document.getElementById("testGroupColSelect").value || cols[0];
-  const valueCol = document.getElementById("testValueColSelect").value || numCols[0] || cols[1];
-  const secondCol = document.getElementById("testSecondCatColSelect").value || cols[1];
-
-  let resultText = "";
-  let interpText = "";
-
-  if(testType === "ttest"){
-    const groups = {};
-    currentSheetRows.forEach(r => {
-      const g = String(r[groupCol] ?? "空值");
-      if(!groups[g]) groups[g] = [];
-      groups[g].push(parseFloat(r[valueCol]));
-    });
-    const keys = Object.keys(groups).slice(0,2);
-    if(keys.length < 2){
-      alert("t 检验需要至少两个组别。");
-      return;
-    }
-    const res = tTestTwoSample(groups[keys[0]], groups[keys[1]]);
-    if(!res){
-      alert("当前数据不足以进行 t 检验。");
-      return;
-    }
-    resultText = `检验类型：两组均值比较（t 检验）
-分组列：${groupCol}
-数值列：${valueCol}
-组1：${keys[0]}（n=${res.nx}，均值=${res.mx.toFixed(2)}）
-组2：${keys[1]}（n=${res.ny}，均值=${res.my.toFixed(2)}）
-t = ${res.t.toFixed(4)}
-df = ${res.df.toFixed(2)}
-p = ${formatP(res.p)}`;
-    interpText = `基于分组列“${groupCol}”和数值列“${valueCol}”进行两组均值比较后，${keys[0]} 组与 ${keys[1]} 组之间的差异${res.p < 0.05 ? "具有统计学意义" : "未达到统计学意义"}（t=${res.t.toFixed(2)}, p=${formatP(res.p)}）。写作时可进一步结合均值差异方向说明哪一组更高。`;
-  } else if(testType === "anova"){
-    const groups = {};
-    currentSheetRows.forEach(r => {
-      const g = String(r[groupCol] ?? "空值");
-      if(!groups[g]) groups[g] = [];
-      groups[g].push(parseFloat(r[valueCol]));
-    });
-    const res = anovaOneWay(groups);
-    if(!res){
-      alert("当前数据不足以进行 ANOVA。");
-      return;
-    }
-    const details = res.groups.map(([k,v]) => {
-      const vals = v.filter(x => !isNaN(x));
-      return `${k}: n=${vals.length}, 均值=${mean(vals).toFixed(2)}`;
-    }).join("\n");
-    resultText = `检验类型：多组均值比较（单因素 ANOVA）
-分组列：${groupCol}
-数值列：${valueCol}
-${details}
-F = ${res.F.toFixed(4)}
-df = (${res.dfBetween}, ${res.dfWithin})
-p = ${formatP(res.p)}`;
-    interpText = `基于分组列“${groupCol}”对数值列“${valueCol}”进行单因素方差分析后，各组之间整体差异${res.p < 0.05 ? "具有统计学意义" : "未达到统计学意义"}（F=${res.F.toFixed(2)}, p=${formatP(res.p)}）。如 p<0.05，可进一步考虑事后两两比较。`;
-  } else if(testType === "chisq"){
-    const colB = secondCol || valueCol;
-    const res = chiSquareTest(currentSheetRows, groupCol, colB);
-    if(!res){
-      alert("当前数据不足以进行卡方检验。");
-      return;
-    }
-    resultText = `检验类型：分类变量关联（卡方检验）
-变量1：${groupCol}
-变量2：${colB}
-χ² = ${res.chi2.toFixed(4)}
-df = ${res.df}
-p = ${formatP(res.p)}
-
-列联表：
-${res.levelsA.map((a,i) => `${a}: ${res.obs[i].join(", ")}`).join("\n")}`;
-    interpText = `基于“${groupCol}”与“${colB}”进行卡方检验后，两个分类变量之间的关联${res.p < 0.05 ? "具有统计学意义" : "未达到统计学意义"}（χ²=${res.chi2.toFixed(2)}, p=${formatP(res.p)}）。写作时可结合列联表指出主要差异来源于哪些类别。`;
-  }
-
-  document.getElementById("statResultBox").textContent = resultText;
-  document.getElementById("statInterpretationBox").textContent = interpText;
-}
-
-
-function getText(id){
-  const el = document.getElementById(id);
-  return el ? (el.textContent || "").trim() : "";
-}
-
-function buildReportSections(){
-  const project = norm(document.getElementById("projectName").value);
-  const title = norm(document.getElementById("reportTitle").value) || `${project || "未命名项目"}研究报告`;
-  const author = norm(document.getElementById("authorName").value) || "未填写";
-  const abs = norm(document.getElementById("reportAbstract").value) || "无";
-  const keyword = norm(document.getElementById("keyword").value);
-  const notes = norm(document.getElementById("projectNotes").value) || "无";
-  const pdfSummary = getText("pdfSummary");
-  const reviewPrompt = getText("reviewPrompt");
-  const introDraft = getText("introDraft");
-  const discussionDraft = getText("discussionDraft");
-  const refs = getText("refsBox");
-  const dataSummary = getText("dataSummaryBox");
-  const groupSummary = getText("groupSummaryBox");
-  const dataPrompt = getText("dataAnalysisPrompt");
-  const statResult = getText("statResultBox");
-  const statInterpretation = getText("statInterpretationBox");
-
-  return {
-    title, author, abs, project, keyword, notes, pdfSummary,
-    reviewPrompt, introDraft, discussionDraft, refs,
-    dataSummary, groupSummary, dataPrompt, statResult, statInterpretation
-  };
-}
-
-function buildReportPreview(){
-  const s = buildReportSections();
-  const preview = [
-    `报告标题：${s.title}`,
-    `作者：${s.author}`,
-    `项目名称：${s.project || "未填写"}`,
-    `检索主题：${s.keyword || "未填写"}`,
-    ``,
-    `一、项目摘要`,
-    s.abs,
-    ``,
-    `二、项目笔记`,
-    s.notes,
-    ``,
-    `三、PDF / 全文路径摘要`,
-    s.pdfSummary || "暂无",
-    ``,
-    `四、综述生成`,
-    s.reviewPrompt || "暂无",
-    ``,
-    `五、前言生成`,
-    s.introDraft || "暂无",
-    ``,
-    `六、讨论扩写`,
-    s.discussionDraft || "暂无",
-    ``,
-    `七、Excel 数据摘要`,
-    s.dataSummary || "暂无",
-    ``,
-    `八、分组统计`,
-    s.groupSummary || "暂无",
-    ``,
-    `九、统计检验结果`,
-    s.statResult || "暂无",
-    ``,
-    `十、统计解释`,
-    s.statInterpretation || "暂无",
-    ``,
-    `十一、数据分析提示词`,
-    s.dataPrompt || "暂无",
-    ``,
-    `十二、参考文献`,
-    s.refs || "暂无"
-  ].join("\n");
-  document.getElementById("reportPreviewBox").textContent = preview;
-}
-
-function paragraphsFromText(text, docxLib, opts={}){
-  const { Paragraph, TextRun } = docxLib;
-  const lines = String(text || "").split(/\n+/);
-  return lines.map(line => new Paragraph({
-    spacing: { after: 120 },
-    children: [new TextRun({ text: line || " ", size: opts.size || 22 })]
-  }));
-}
-
-async function exportWordReport(){
-  if(typeof docx === "undefined" || typeof saveAs === "undefined"){
-    alert("当前环境未成功加载 Word 导出依赖，请联网后重试。");
-    return;
-  }
-
-  buildReportPreview();
-  const s = buildReportSections();
-  const {
-    Document, Packer, Paragraph, HeadingLevel, TextRun, SectionType, AlignmentType, PageBreak
-  } = docx;
-
-  const doc = new Document({
-    creator: "OpenAI",
-    title: s.title,
-    description: "科研系统自动生成报告",
-    sections: [{
-      properties: { type: SectionType.CONTINUOUS },
-      children: [
-        new Paragraph({
-          heading: HeadingLevel.TITLE,
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 240 },
-          children: [new TextRun({ text: s.title, bold: true, size: 34 })]
-        }),
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 120 },
-          children: [new TextRun({ text: `作者：${s.author}`, size: 22 })]
-        }),
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 320 },
-          children: [new TextRun({ text: `项目：${s.project || "未填写"} ｜ 主题：${s.keyword || "未填写"}`, size: 22 })]
-        }),
-
-        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("一、项目摘要")] }),
-        ...paragraphsFromText(s.abs, docx),
-
-        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("二、项目笔记")] }),
-        ...paragraphsFromText(s.notes, docx),
-
-        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("三、PDF / 全文路径摘要")] }),
-        ...paragraphsFromText(s.pdfSummary || "暂无", docx),
-
-        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("四、综述生成提示")] }),
-        ...paragraphsFromText(s.reviewPrompt || "暂无", docx),
-
-        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("五、前言生成框架")] }),
-        ...paragraphsFromText(s.introDraft || "暂无", docx),
-
-        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("六、讨论扩写提示")] }),
-        ...paragraphsFromText(s.discussionDraft || "暂无", docx),
-
-        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("七、Excel 数据摘要")] }),
-        ...paragraphsFromText(s.dataSummary || "暂无", docx),
-
-        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("八、分组统计摘要")] }),
-        ...paragraphsFromText(s.groupSummary || "暂无", docx),
-
-        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("九、统计检验结果")] }),
-        ...paragraphsFromText(s.statResult || "暂无", docx),
-
-        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("十、统计解释")] }),
-        ...paragraphsFromText(s.statInterpretation || "暂无", docx),
-
-        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("十一、数据分析提示词")] }),
-        ...paragraphsFromText(s.dataPrompt || "暂无", docx),
-
-        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("十二、参考文献")] }),
-        ...paragraphsFromText(s.refs || "暂无", docx)
-      ]
-    }]
-  });
-
-  const blob = await Packer.toBlob(doc);
-  const safeName = (s.title || "research_report").replace(/[\\/:*?"<>|]+/g, "_");
-  saveAs(blob, `${safeName}.docx`);
-}
-
-
-const PROJECT_TEMPLATES = {
-  "bile_acid": {
-    projectName: "新生儿胆汁淤积与胆汁酸代谢研究",
-    keyword: "neonatal cholestasis bile acid SLC10A1 UGT1A1 ABCB11 MYO5B TJP2",
-    notes: "重点关注胆汁酸转运核心基因、胆红素代谢基因、双诊断、良性高胆汁酸血症、UDCA 反应与基因型-表型关联。",
-    yearFrom: "2020",
-    mode: "gene",
-    preview: "适用于：新生儿高胆汁酸血症、胆汁淤积、SLC10A1/UGT1A1/ABCB11 等通路研究。建议重点做：基因频率统计、核心基因分层、TBA/TBIL/DBIL/GGT 与基因型关联、随访变化图。"
-  },
-  "thyroid": {
-    projectName: "儿童甲状腺功能异常与出生史研究",
-    keyword: "pediatric thyroid function birth history neonatal factors autoimmune thyroiditis hypothyroidism hyperthyroidism",
-    notes: "重点关注出生史、喂养史、用药情况、家族史、自身免疫指标、超声表现及随访疗效。",
-    yearFrom: "2018",
-    mode: "smart",
-    preview: "适用于：甲减、甲亢、桥本甲状腺炎及出生史关联研究。建议重点做：分病种统计、出生史因素比较、治疗前后指标变化、随访转归分析。"
-  },
-  "neonatal": {
-    projectName: "新生儿 / 早产儿临床结局研究",
-    keyword: "preterm infant neonatal outcomes growth development follow-up NICU risk factors",
-    notes: "重点关注胎龄、出生体重、住院过程、并发症、喂养、神经发育和长期随访结局。",
-    yearFrom: "2019",
-    mode: "smart",
-    preview: "适用于：早产儿、NICU 随访、新生儿临床结局研究。建议重点做：基线特征表、风险分层、结局比较、成长曲线与发育评估。"
-  },
-  "genetics": {
-    projectName: "基因变异与临床表型关联研究",
-    keyword: "genotype phenotype variant pathogenicity clinical correlation sequencing cohort",
-    notes: "重点关注变异分类、纯合/杂合/半合子、P/LP/VUS 分层、与临床指标和结局的关联。",
-    yearFrom: "2020",
-    mode: "gene",
-    preview: "适用于：队列基因检测、变异频次、基因型-表型研究。建议重点做：基因频率表、致病性分层、临床指标比较、趋势图和统计检验。"
-  },
-  "custom": {
-    projectName: "",
-    keyword: "",
-    notes: "",
-    yearFrom: "",
-    mode: "pdf",
-    preview: "空白模板。适合完全自定义课题。"
-  }
-};
-
-function applyProjectTemplate(){
-  const key = document.getElementById("projectTemplate").value;
-  const t = PROJECT_TEMPLATES[key];
-  if(!t){
-    document.getElementById("templatePreviewBox").textContent = "当前为通用科研模板。你可以手动填写项目名称、关键词和备注。";
-    return;
-  }
-  if(t.projectName) document.getElementById("projectName").value = t.projectName;
-  if(t.keyword) document.getElementById("keyword").value = t.keyword;
-  if(t.notes !== undefined) document.getElementById("projectNotes").value = t.notes;
-  if(t.yearFrom !== undefined) document.getElementById("yearFrom").value = t.yearFrom;
-  if(t.mode) document.getElementById("mode").value = t.mode;
-  document.getElementById("templatePreviewBox").textContent = t.preview || "已套用模板。";
-}
-
-function previewTemplate(){
-  const key = document.getElementById("projectTemplate").value;
-  if(!key){
-    document.getElementById("templatePreviewBox").textContent = "通用科研模板：适合任意课题。建议按“项目名称 + 关键词 + 研究备注”三部分填写。";
-    return;
-  }
-  const t = PROJECT_TEMPLATES[key];
-  document.getElementById("templatePreviewBox").textContent = t ? t.preview : "暂无模板说明。";
-}
-
-
-const MANAGED_PROJECTS_KEY = "research_system_v8_managed_projects";
-let currentManagedProjectId = "";
-
-function collectProjectState(){
-  return {
-    projectName: document.getElementById("projectName")?.value || "",
-    projectTemplate: document.getElementById("projectTemplate")?.value || "",
-    keyword: document.getElementById("keyword")?.value || "",
-    yearFrom: document.getElementById("yearFrom")?.value || "",
-    limit: document.getElementById("limit")?.value || "60",
-    mode: document.getElementById("mode")?.value || "pdf",
-    email: document.getElementById("emailForApi")?.value || "",
-    notes: document.getElementById("projectNotes")?.value || "",
-    reportTitle: document.getElementById("reportTitle")?.value || "",
-    authorName: document.getElementById("authorName")?.value || "",
-    reportAbstract: document.getElementById("reportAbstract")?.value || ""
-  };
-}
-
-function applyProjectState(state){
-  if(!state) return;
-  if(document.getElementById("projectName")) document.getElementById("projectName").value = state.projectName || "";
-  if(document.getElementById("projectTemplate")) document.getElementById("projectTemplate").value = state.projectTemplate || "";
-  if(document.getElementById("keyword")) document.getElementById("keyword").value = state.keyword || "";
-  if(document.getElementById("yearFrom")) document.getElementById("yearFrom").value = state.yearFrom || "";
-  if(document.getElementById("limit")) document.getElementById("limit").value = state.limit || "60";
-  if(document.getElementById("mode")) document.getElementById("mode").value = state.mode || "pdf";
-  if(document.getElementById("emailForApi")) document.getElementById("emailForApi").value = state.email || "";
-  if(document.getElementById("projectNotes")) document.getElementById("projectNotes").value = state.notes || "";
-  if(document.getElementById("reportTitle")) document.getElementById("reportTitle").value = state.reportTitle || "";
-  if(document.getElementById("authorName")) document.getElementById("authorName").value = state.authorName || "";
-  if(document.getElementById("reportAbstract")) document.getElementById("reportAbstract").value = state.reportAbstract || "";
-}
-
-function loadManagedProjects(){
-  try { return JSON.parse(localStorage.getItem(MANAGED_PROJECTS_KEY) || "[]"); }
-  catch(e){ return []; }
-}
-function saveManagedProjects(items){ localStorage.setItem(MANAGED_PROJECTS_KEY, JSON.stringify(items)); }
-function escapeHtmlLocal(s){ return String(s || "").replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
-
-function renderProjectDashboard(project){
-  if(!project){
-    document.getElementById("projectDashboardBox").textContent = "保存项目后，这里会显示项目摘要、关键词和备注概览。";
-    return;
-  }
-  const s = project.state || {};
-  document.getElementById("projectDashboardBox").textContent =
-`项目名称：${project.name}
-模板：${s.projectTemplate || "通用"}
-关键词：${s.keyword || "未填写"}
-年份起点：${s.yearFrom || "未填写"}
-模式：${s.mode || "未填写"}
-
-项目备注：
-${s.notes || "无"}
-
-更新时间：${project.updatedAt || "未知"}`;
-}
-
-function chooseManagedProject(id){
-  const items = loadManagedProjects();
-  const p = items.find(x => x.id === id);
-  if(!p) return;
-  currentManagedProjectId = id;
-  document.getElementById("projectManagerName").value = p.name || "";
-  applyProjectState(p.state);
-  renderProjectDashboard(p);
-  alert("已切换到项目：" + p.name);
-}
-
-function refreshProjectList(){
-  const items = loadManagedProjects();
-  const box = document.getElementById("projectListBox");
-  if(!items.length){
-    box.innerHTML = "暂无项目。";
-    renderProjectDashboard(null);
-    return;
-  }
-  box.innerHTML = items.map((p, i) => `
-    <div style="border-bottom:1px dashed #e5e7eb;padding:10px 0">
-      <div><b>${i+1}. ${escapeHtmlLocal(p.name)}</b></div>
-      <div style="font-size:12px;color:#6b7280">更新时间：${escapeHtmlLocal(p.updatedAt || "")}</div>
-      <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="soft" onclick="chooseManagedProject('${p.id}')">打开</button>
+function renderGrid(){
+  const box = document.getElementById('platformGrid');
+  const pool = getExternalPlatforms();
+  const items = activeCategory === 'all' ? pool : pool.filter(x => x.category === activeCategory);
+  box.innerHTML = items.map(x => `
+    <div class="platform-card">
+      <div>
+        <a target="_blank" rel="noopener noreferrer" href="${platformUrl(x)}">${safeText(x.name)}</a>
+        <small>${safeText(x.desc)}</small>
       </div>
     </div>
-  `).join("");
-  if(currentManagedProjectId){
-    const cur = items.find(x => x.id === currentManagedProjectId);
-    renderProjectDashboard(cur || items[0]);
-  } else {
-    renderProjectDashboard(items[0]);
-  }
+  `).join('');
 }
-
-function saveAsManagedProject(){
-  const name = (document.getElementById("projectManagerName")?.value || document.getElementById("projectName")?.value || "").trim();
-  if(!name){ alert("请先填写项目名。"); return; }
-  const items = loadManagedProjects();
-  const id = "p_" + Date.now();
-  const project = { id, name, updatedAt: new Date().toLocaleString(), state: collectProjectState() };
-  items.unshift(project);
-  saveManagedProjects(items);
-  currentManagedProjectId = id;
-  document.getElementById("projectManagerName").value = name;
-  refreshProjectList();
-  renderProjectDashboard(project);
-  alert("项目已保存到项目首页。");
-}
-
-function updateManagedProject(){
-  if(!currentManagedProjectId){ alert("当前没有已打开的项目，请先新建或打开一个项目。"); return; }
-  const items = loadManagedProjects();
-  const idx = items.findIndex(x => x.id === currentManagedProjectId);
-  if(idx < 0){ alert("未找到当前项目，请先刷新项目列表。"); return; }
-  items[idx].name = (document.getElementById("projectManagerName")?.value || items[idx].name || "").trim();
-  items[idx].updatedAt = new Date().toLocaleString();
-  items[idx].state = collectProjectState();
-  saveManagedProjects(items);
-  refreshProjectList();
-  renderProjectDashboard(items[idx]);
-  alert("当前项目已更新。");
-}
-
-function deleteManagedProject(){
-  if(!currentManagedProjectId){ alert("当前没有已打开的项目。"); return; }
-  const items = loadManagedProjects();
-  const target = items.find(x => x.id === currentManagedProjectId);
-  if(!target){ alert("未找到当前项目。"); return; }
-  const ok = confirm("确认删除项目：" + target.name + " ?");
-  if(!ok) return;
-  const next = items.filter(x => x.id !== currentManagedProjectId);
-  saveManagedProjects(next);
-  currentManagedProjectId = "";
-  document.getElementById("projectManagerName").value = "";
-  refreshProjectList();
-  alert("项目已删除。");
-}
-
-function getChartImageDataUrl(){
-  if(typeof analysisChart !== "undefined" && analysisChart){
-    try { return analysisChart.toBase64Image(); } catch(e) { return ""; }
-  }
-  return "";
-}
-
-function buildLinkedExportSummary(){
-  const lines = [];
-  lines.push("联动导出内容：");
-  lines.push(`1. Word 报告：${norm(document.getElementById("reportTitle")?.value) || "未命名报告"}`);
-  lines.push(`2. 图表：${(typeof analysisChart !== "undefined" && analysisChart) ? "已生成，可导出 PNG" : "未生成"}`);
-  lines.push(`3. 统计结果：${getText("statResultBox") ? "已包含" : "暂无"}`);
-  lines.push(`4. 数据分析摘要：${getText("dataSummaryBox") ? "已包含" : "暂无"}`);
-  lines.push(`5. 参考文献：${getText("refsBox") ? "已包含" : "暂无"}`);
-  return lines.join("\n");
-}
-
-function exportStatAndDataTxt(){
-  const text = [
-    "【统计结果】",
-    getText("statResultBox") || "暂无",
-    "",
-    "【统计解释】",
-    getText("statInterpretationBox") || "暂无",
-    "",
-    "【数据摘要】",
-    getText("dataSummaryBox") || "暂无",
-    "",
-    "【分组统计】",
-    getText("groupSummaryBox") || "暂无",
-    "",
-    "【数据分析提示词】",
-    getText("dataAnalysisPrompt") || "暂无"
-  ].join("\n");
-  const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "research_system_linked_stats_and_data.txt";
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-function exportChartPNGLinked(){
-  if(typeof analysisChart === "undefined" || !analysisChart) return false;
+function setCategory(cat){ activeCategory = cat; renderFilters(); renderGrid(); }
+function saveCustomPlatforms(){ localStorage.setItem('customPlatforms', JSON.stringify(customPlatforms)); }
+function loadCustomPlatforms(){
   try{
-    const a = document.createElement("a");
-    a.href = analysisChart.toBase64Image();
-    a.download = "research_system_linked_chart.png";
-    a.click();
-    return true;
-  }catch(e){
-    return false;
-  }
-}
-
-async function exportWordReportLinked(includeChartImage){
-  if(typeof docx === "undefined" || typeof saveAs === "undefined"){
-    alert("当前环境未成功加载 Word 导出依赖，请联网后重试。");
-    return false;
-  }
-
-  buildReportPreview();
-  const s = buildReportSections();
-  const { Document, Packer, Paragraph, HeadingLevel, TextRun, SectionType, AlignmentType, ImageRun } = docx;
-
-  const children = [
-    new Paragraph({ heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER, spacing: { after: 240 }, children: [new TextRun({ text: s.title, bold: true, size: 34 })] }),
-    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [new TextRun({ text: `作者：${s.author}`, size: 22 })] }),
-    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 320 }, children: [new TextRun({ text: `项目：${s.project || "未填写"} ｜ 主题：${s.keyword || "未填写"}`, size: 22 })] }),
-
-    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("一、项目摘要")] }),
-    ...paragraphsFromText(s.abs, docx),
-    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("二、项目笔记")] }),
-    ...paragraphsFromText(s.notes, docx),
-    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("三、PDF / 全文路径摘要")] }),
-    ...paragraphsFromText(s.pdfSummary || "暂无", docx),
-    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("四、综述生成提示")] }),
-    ...paragraphsFromText(s.reviewPrompt || "暂无", docx),
-    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("五、前言生成框架")] }),
-    ...paragraphsFromText(s.introDraft || "暂无", docx),
-    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("六、讨论扩写提示")] }),
-    ...paragraphsFromText(s.discussionDraft || "暂无", docx),
-    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("七、Excel 数据摘要")] }),
-    ...paragraphsFromText(s.dataSummary || "暂无", docx),
-    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("八、分组统计摘要")] }),
-    ...paragraphsFromText(s.groupSummary || "暂无", docx),
-    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("九、统计检验结果")] }),
-    ...paragraphsFromText(s.statResult || "暂无", docx),
-    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("十、统计解释")] }),
-    ...paragraphsFromText(s.statInterpretation || "暂无", docx),
-    new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("十一、数据分析提示词")] }),
-    ...paragraphsFromText(s.dataPrompt || "暂无", docx)
-  ];
-
-  if(includeChartImage){
-    const chartDataUrl = getChartImageDataUrl();
-    if(chartDataUrl){
-      const base64 = chartDataUrl.split(",")[1];
-      const binary = atob(base64);
-      const len = binary.length;
-      const bytes = new Uint8Array(len);
-      for(let i=0;i<len;i++) bytes[i] = binary.charCodeAt(i);
-      children.push(new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("十二、图表输出")] }));
-      children.push(new Paragraph({ children: [new ImageRun({ data: bytes, transformation: { width: 520, height: 320 } })] }));
-      children.push(new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: getText("chartInterpretationBox") || "无图表解读", size: 22 })] }));
+    const data = localStorage.getItem('customPlatforms');
+    if(data){
+      const parsed = JSON.parse(data);
+      if(Array.isArray(parsed)) customPlatforms = parsed.map(item => ({...item, mode: item.mode || (String(item.url || '').includes('{q}') ? 'search' : 'link')}));
     }
+  }catch(e){ customPlatforms = []; }
+}
+function renderCustomList(){
+  const box = document.getElementById('customList');
+  if(!box) return;
+  if(!customPlatforms.length){
+    box.innerHTML = '<div class="empty" style="width:100%;">还没有自定义入口。你可以添加自己的数据库、机构图书馆、课题组网站或常用平台。</div>';
+    return;
   }
+  box.innerHTML = customPlatforms.map((p, i) => `
+    <div class="custom-item">
+      <div>
+        <div><b>${safeText(p.name)}</b>${p.featured ? ' <span style="color:#d97706;">★</span>' : ''}${(p.mode || 'search') === 'link' ? ' <span class="mode-badge linkonly">仅跳转</span>' : ' <span class="mode-badge">自动搜索</span>'}</div>
+        <small>${safeText(categoryLabels[p.category] || p.category)} · ${safeText(p.desc || '自定义入口')}</small>
+      </div>
+      <div class="custom-actions">
+        <button class="custom-go" onclick="openCustom(${i})" title="打开">打开</button>
+        <button class="custom-del" onclick="removeCustom(${i})" title="删除">×</button>
+      </div>
+    </div>
+  `).join('');
+}
+function openCustom(index){
+  const item = customPlatforms[index];
+  if(!item) return;
+  window.open(platformUrl(item), '_blank', 'noopener,noreferrer');
+  setStatus(`已打开自定义入口：<b>${safeText(item.name)}</b>`);
+}
+function addCustomFromUI(){
+  const name = document.getElementById('customName').value.trim();
+  const url = document.getElementById('customUrl').value.trim();
+  const mode = document.getElementById('customMode').value;
+  const category = document.getElementById('customCategory').value;
+  const featured = document.getElementById('customFeatured').checked;
+  if(!name || !url){ alert('请填写名称和 URL'); return; }
+  if(mode === 'search' && !url.includes('{q}')){ alert('自动搜索模式下，URL 必须包含 {q} 作为搜索词占位符'); return; }
+  const exists = customPlatforms.some(item => String(item.name || '').trim().toLowerCase() === name.toLowerCase() && String(item.url || '').trim() === url && String(item.mode || 'search') === mode);
+  if(exists){ setStatus(`已存在同名同地址入口：<b>${safeText(name)}</b>`); return; }
+  customPlatforms.push({ name, mode, category, featured, desc: mode === 'link' ? '自定义入口 · 纯跳转' : '自定义入口 · 自动搜索', url });
+  saveCustomPlatforms(); renderCustomList(); renderGrid();
+  document.getElementById('customName').value = '';
+  document.getElementById('customUrl').value = '';
+  document.getElementById('customMode').value = 'search';
+  document.getElementById('customCategory').value = 'general';
+  document.getElementById('customFeatured').checked = false;
+  setStatus(`已添加自定义入口：<b>${safeText(name)}</b>（${mode === 'link' ? '纯跳转' : '自动搜索'}）`);
+}
+function removeCustom(index){
+  const name = customPlatforms[index] ? customPlatforms[index].name : '';
+  customPlatforms.splice(index, 1);
+  saveCustomPlatforms(); renderCustomList(); renderGrid();
+  setStatus(name ? `已删除自定义入口：<b>${safeText(name)}</b>` : '已删除自定义入口。');
+}
+function fillExample(){
+  document.getElementById('mode').value = 'keyword';
+  document.getElementById('query').value = 'neonatal cholestasis SLC10A1 UGT1A1';
+  renderGrid();
+  setStatus('已填入示例。你可以直接点击“开始查询”。');
+}
+function clearAllData(){
+  document.getElementById('mode').value = 'keyword';
+  document.getElementById('query').value = '';
+  renderGrid();
+  lastSearchState = null;
+  document.getElementById('results').innerHTML = '<div class="empty">还没有结果。请先输入 DOI、文章标题或关键词，然后点击“开始查询”。</div>';
+  document.getElementById('filterPanel').innerHTML = '<div class="empty">请先执行一次检索，随后可在这里按年份区间、年月范围、去重和 PDF 条件筛选结果。</div>';
+  document.getElementById('filterStats').innerHTML = '';
+  document.getElementById('filteredResults').innerHTML = '<div class="empty">筛选结果会显示在这里。</div>';
+  setStatus('已清空。');
+}
+function openExternalFeatured(){
+  const items = getExternalPlatforms().filter(x => x.featured).slice(0,10);
+  if(!items.length){ setStatus('当前没有可打开的外部常用入口。'); return; }
+  window.open(platformUrl(items[0]), '_blank', 'noopener,noreferrer');
+  const rest = items.slice(1).map(x => `<a target="_blank" rel="noopener noreferrer" href="${platformUrl(x)}">${safeText(x.name)}</a>`).join(' · ');
+  setStatus(`已打开 1 个外部常用入口：<b>${safeText(items[0].name)}</b>${rest ? `。其余入口：${rest}` : ''}`);
+}
+function setStatus(msg){ document.getElementById('status').innerHTML = msg; }
 
-  children.push(new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(includeChartImage ? "十三、参考文献" : "十二、参考文献")] }));
-  children.push(...paragraphsFromText(s.refs || "暂无", docx));
-
-  const doc = new Document({
-    creator: "OpenAI",
-    title: s.title,
-    description: "科研系统一键联动导出报告",
-    sections: [{ properties: { type: SectionType.CONTINUOUS }, children }]
+function buildApiJumpLinks(title, doi=''){
+  const cleanTitle = (title || '').trim();
+  const cleanDoi = normalizeDOI(doi || '').toLowerCase();
+  const q = enc(cleanTitle);
+  const d = encodeURIComponent(cleanDoi);
+  return [
+    {label:'PubMed', url: cleanDoi ? `https://pubmed.ncbi.nlm.nih.gov/?term=${d}` : `https://pubmed.ncbi.nlm.nih.gov/?term=${q}`},
+    {label:'OpenAlex', url: cleanDoi ? `https://openalex.org/works?filter=doi:${d}` : `https://openalex.org/works?page=1&search=${q}`},
+    {label:'Crossref', url: cleanDoi ? `https://search.crossref.org/?q=${d}` : `https://search.crossref.org/?q=${q}`},
+    {label:'Europe PMC', url: cleanDoi ? `https://europepmc.org/search?query=${d}` : `https://europepmc.org/search?query=${q}`},
+    {label:'DOAJ', url: cleanDoi ? `https://doaj.org/api/search/articles?q=${d}` : `https://doaj.org/api/search/articles?q=${q}`},
+    {label:'arXiv', url: `https://arxiv.org/search/?query=${q}&searchtype=all`}
+  ];
+}
+function makeResultItem(source, title, meta, links, extras={}){
+  const cleanLinks = uniqueUrls(links);
+  const doi = normalizeDOI(extras.doi || '');
+  const year = extras.year ?? extractYear(extras.pubdate || meta.pubdate || '');
+  const yearMonth = extras.yearMonth || extractYearMonth(extras.pubdate || meta.pubdate || year || '');
+  const pdfUrl = extras.pdfUrl || (cleanLinks.find(x => /pdf/i.test(x.label) || /\.pdf(\?|$)/i.test(x.url)) || {}).url || '';
+  return {
+    source,
+    title: title || '(无标题)',
+    meta: meta || {},
+    links: cleanLinks,
+    doi,
+    year,
+    yearMonth,
+    pdfUrl,
+    openAccess: extras.openAccess || '',
+    rawKey: doi || normalizeTitleKey(title),
+    bestLink: cleanLinks[0] ? cleanLinks[0].url : ''
+  };
+}
+function renderActions(links){
+  return uniqueUrls(links).map(x => `<a target="_blank" rel="noopener noreferrer" href="${x.url}">${safeText(x.label)}</a>`).join('');
+}
+function renderResultCard(item){
+  const metaLines = [];
+  if(item.meta.journal) metaLines.push(`<b>期刊/来源：</b>${safeText(item.meta.journal)}`);
+  if(item.meta.pubdate) metaLines.push(`<b>发布日期：</b>${safeText(item.meta.pubdate)}`);
+  else if(item.year) metaLines.push(`<b>年份：</b>${safeText(item.year)}`);
+  if(item.meta.authors) metaLines.push(`<b>作者：</b>${safeText(item.meta.authors)}`);
+  if(item.meta.pmid) metaLines.push(`<b>PMID：</b>${safeText(item.meta.pmid)}`);
+  if(item.doi) metaLines.push(`<b>DOI：</b>${safeText(item.doi)}`);
+  if(item.openAccess) metaLines.push(`<b>开放获取：</b>${safeText(item.openAccess)}`);
+  if(item.pdfUrl) metaLines.push(`<b>PDF：</b><a target="_blank" rel="noopener noreferrer" href="${item.pdfUrl}">${safeText(item.pdfUrl)}</a>`);
+  if(item.meta.summary) metaLines.push(`<b>摘要：</b>${safeText(item.meta.summary)}`);
+  return `
+    <div class="result">
+      <span class="src">${safeText(item.source)}</span>
+      <div class="title">${safeText(item.title)}</div>
+      <div class="meta">${metaLines.join('<br>') || ''}</div>
+      <div class="actions">${renderActions(item.links)}</div>
+    </div>
+  `;
+}
+function normalizeSummaryCount(count, reachable='Yes'){
+  if(reachable !== 'Yes') return 'N/A';
+  const n = Number(count);
+  return Number.isFinite(n) ? n : 0;
+}
+function makePlatformSummary(name, searchMode, count, url, reachable='Yes'){
+  return {name, reachable, searchMode, count: normalizeSummaryCount(count, reachable), url};
+}
+function buildReportHtml(query, modeLabel, summaryItems, apiDetails, followLinks){
+  const now = new Date();
+  const generated = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const firstHit = apiDetails.find(x => x.topTitle);
+  const summaryHtml = [];
+  if(firstHit){
+    summaryHtml.push(`<li>Matched Title: ${safeText(firstHit.topTitle)}</li>`);
+    if(firstHit.topDoi) summaryHtml.push(`<li>DOI: ${safeText(firstHit.topDoi)}</li>`);
+    if(firstHit.openAccess) summaryHtml.push(`<li>Open Access: ${safeText(firstHit.openAccess)}</li>`);
+    if(firstHit.bestLink) summaryHtml.push(`<li>Best Link: <a target="_blank" rel="noopener noreferrer" href="${firstHit.bestLink}">${safeText(firstHit.bestLink)}</a></li>`);
+  } else {
+    summaryHtml.push('<li>本次 API 池未返回可用于摘要展示的命中结果。</li>');
+  }
+  const overviewRows = summaryItems.map(item => `
+    <tr>
+      <td>${safeText(item.name)}</td>
+      <td class="${item.reachable === 'Yes' ? 'ok' : 'muted'}">${safeText(item.reachable)}</td>
+      <td>${safeText(item.searchMode)}</td>
+      <td>${safeText(item.count)}</td>
+      <td class="report-links mono">${item.url ? `<a target="_blank" rel="noopener noreferrer" href="${item.url}">${safeText(item.url)}</a>` : '-'}</td>
+    </tr>`).join('');
+  const smartLinks = [];
+  apiDetails.forEach(item => {
+    if(item.searchUrl) smartLinks.push(`<li><b>${safeText(item.name)} 搜索</b>：<a target="_blank" rel="noopener noreferrer" href="${item.searchUrl}">${safeText(item.searchUrl)}</a></li>`);
+    (item.extraLinks || []).forEach(link => smartLinks.push(`<li><b>${safeText(link.label)}</b>：<a target="_blank" rel="noopener noreferrer" href="${link.url}">${safeText(link.url)}</a></li>`));
   });
-
-  const blob = await Packer.toBlob(doc);
-  const safeName = (s.title || "research_report").replace(/[\\/:*?"<>|]+/g, "_");
-  saveAs(blob, `${safeName}_联动报告.docx`);
+  followLinks.forEach(link => smartLinks.push(`<li><b>${safeText(link.label)}</b>：<a target="_blank" rel="noopener noreferrer" href="${link.url}">${safeText(link.url)}</a></li>`));
+  const notes = [
+    'API池结果为自动结构化检索；外部入口与自定义入口仍用于人工补查。',
+    '筛选模块支持按年份桶、自定义年月区间、去重和“仅显示带 PDF 链接”的结果。',
+    'PDF 抓取以开放获取链接、PMC、DOAJ、Crossref/OpenAlex 返回的可用链接为主；受版权、跨域和站点策略影响，不保证每篇都能直接抓到 PDF。'
+  ];
+  return `
+    <div class="report-wrap">
+      <div class="report-card">
+        <h2 class="report-title">文献平台检索报告</h2>
+        <div class="report-meta"><b>Query:</b> <span class="mono">${safeText(query)}</span> &nbsp;&nbsp; <b>Mode:</b> ${safeText(modeLabel)} &nbsp;&nbsp; <b>Generated:</b> ${safeText(generated)}</div>
+        <div class="report-section-title">Summary</div>
+        <ul class="report-list">${summaryHtml.join('')}</ul>
+        <div class="report-section-title">Platform Overview</div>
+        <div class="report-table-wrap">
+          <table class="report-table">
+            <thead><tr><th>Platform</th><th>Reachable</th><th>Search Mode</th><th>Count</th><th>Search URL</th></tr></thead>
+            <tbody>${overviewRows}</tbody>
+          </table>
+        </div>
+        <div class="report-section-title">Smart Links</div>
+        <ul class="report-list">${smartLinks.length ? smartLinks.join('') : '<li>暂无可用链接。</li>'}</ul>
+        <div class="report-section-title">Notes</div>
+        <ul class="report-list">${notes.map(x => `<li>${safeText(x)}</li>`).join('')}</ul>
+      </div>
+    </div>`;
+}
+function renderMainResults(){
+  if(!lastSearchState) return;
+  const box = document.getElementById('results');
+  box.innerHTML = resultView === 'report' ? lastSearchState.reportHtml : (lastSearchState.items.length ? lastSearchState.items.map(renderResultCard).join('') : '<div class="empty">没有结果。</div>');
+}
+function setResultView(view){
+  resultView = view === 'card' ? 'card' : 'report';
+  localStorage.setItem('resultView', resultView);
+  if(!lastSearchState){ setStatus('请先执行检索'); return; }
+  renderMainResults();
+  setStatus(`已切换为<b>${resultView === 'report' ? '报告视图' : '卡片视图'}</b>。`);
+}
+function renderFilterPanel(){
+  const box = document.getElementById('filterPanel');
+  if(!lastSearchState){
+    box.innerHTML = '<div class="empty">请先执行一次检索，随后可在这里按年份区间、年月范围、去重和 PDF 条件筛选结果。</div>';
+    return;
+  }
+  box.innerHTML = `
+    <div class="filter-grid">
+      <div>
+        <div class="helper" style="margin:0 0 6px;">年份分类</div>
+        <select id="yearBucket">
+          <option value="all">全部年份</option>
+          <option value="0-5">近5年</option>
+          <option value="5-10">5–10年</option>
+          <option value="10+">10年以上</option>
+        </select>
+      </div>
+      <div>
+        <div class="helper" style="margin:0 0 6px;">起始年月</div>
+        <input type="month" id="startMonth" />
+      </div>
+      <div>
+        <div class="helper" style="margin:0 0 6px;">结束年月</div>
+        <input type="month" id="endMonth" />
+      </div>
+      <div>
+        <div class="helper" style="margin:0 0 6px;">去重方式</div>
+        <select id="dedupeMode">
+          <option value="none">不去重</option>
+          <option value="doi">按 DOI 去重</option>
+          <option value="title">按标题去重</option>
+          <option value="smart" selected>智能去重（优先 DOI）</option>
+        </select>
+      </div>
+      <div>
+        <div class="helper" style="margin:0 0 6px;">PDF 过滤</div>
+        <select id="pdfMode">
+          <option value="all">全部</option>
+          <option value="pdfOnly">仅显示带 PDF</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-actions">
+      <button class="primary" onclick="applyResultFilters()">应用筛选</button>
+      <button class="ghost" onclick="resetResultFilters()">重置筛选</button>
+    </div>
+    <div class="filter-note">说明：年份桶按当前年份回溯；自定义年月区间会在年份桶基础上继续筛选。PDF 链接优先使用 PMC、DOAJ、Crossref/OpenAlex 返回的开放链接，未命中并不等于文章没有全文。</div>
+  `;
+}
+function getCurrentFilterValues(){
+  return {
+    yearBucket: document.getElementById('yearBucket')?.value || 'all',
+    startMonth: document.getElementById('startMonth')?.value || '',
+    endMonth: document.getElementById('endMonth')?.value || '',
+    dedupeMode: document.getElementById('dedupeMode')?.value || 'smart',
+    pdfMode: document.getElementById('pdfMode')?.value || 'all'
+  };
+}
+function withinYearBucket(item, bucket){
+  if(bucket === 'all') return true;
+  if(!item.year) return false;
+  const age = new Date().getFullYear() - item.year;
+  if(bucket === '0-5') return age <= 5;
+  if(bucket === '5-10') return age > 5 && age <= 10;
+  if(bucket === '10+') return age > 10;
   return true;
 }
+function withinMonthRange(item, startMonth, endMonth){
+  const ym = item.yearMonth || '';
+  if(!startMonth && !endMonth) return true;
+  if(!ym) return false;
+  if(startMonth && ym < startMonth) return false;
+  if(endMonth && ym > endMonth) return false;
+  return true;
+}
+function dedupeItems(items, mode){
+  if(mode === 'none') return items.slice();
+  const seen = new Set();
+  return items.filter(item => {
+    let key = '';
+    if(mode === 'doi') key = item.doi || `title:${normalizeTitleKey(item.title)}`;
+    else if(mode === 'title') key = normalizeTitleKey(item.title);
+    else key = item.doi || normalizeTitleKey(item.title);
+    if(!key) key = `${item.source}|${item.title}|${item.year || ''}`;
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+function applyResultFilters(){
+  if(!lastSearchState){
+    setStatus('请先执行检索');
+    return;
+  }
+  const filters = getCurrentFilterValues();
+  let items = lastSearchState.items.slice();
+  const total = items.length;
+  const pdfCount = items.filter(x => x.pdfUrl).length;
+  items = items.filter(item => withinYearBucket(item, filters.yearBucket));
+  items = items.filter(item => withinMonthRange(item, filters.startMonth, filters.endMonth));
+  if(filters.pdfMode === 'pdfOnly') items = items.filter(item => item.pdfUrl);
+  const beforeDedupe = items.length;
+  items = dedupeItems(items, filters.dedupeMode);
+  const removedDup = beforeDedupe - items.length;
+  const statsHtml = `
+    <div class="stats-badges">
+      <span class="stat-badge">原始结果：${total}</span>
+      <span class="stat-badge">带 PDF：${pdfCount}</span>
+      <span class="stat-badge">筛选后：${items.length}</span>
+      <span class="stat-badge">去重移除：${removedDup}</span>
+    </div>
+  `;
+  const statsBox = document.getElementById('filterStats');
+  statsBox.innerHTML = statsHtml;
 
-async function oneClickLinkedExport(){
-  const statusBox = document.getElementById("linkedExportStatusBox");
-  statusBox.textContent = "正在准备联动导出...";
-  buildReportPreview();
-
-  const parts = [];
-  parts.push("开始联动导出。");
-  const chartOk = exportChartPNGLinked();
-  parts.push(chartOk ? "图表 PNG：已导出。" : "图表 PNG：未导出（可能尚未生成图表）。");
-  exportStatAndDataTxt();
-  parts.push("统计与数据摘要 TXT：已导出。");
-
+  const box = document.getElementById('filteredResults');
+  box.innerHTML = items.length
+    ? items.map(renderResultCard).join('')
+    : '<div class="empty">当前筛选条件下没有结果。</div>';
+  setStatus(`筛选完成：共 ${items.length} 条结果。`);
+}
+function resetResultFilters(){
+  if(!lastSearchState){
+    setStatus('请先执行检索');
+    return;
+  }
+  renderFilterPanel();
+  applyResultFilters();
+}
+function buildTaskResult({name, searchUrl, count=0, reachable='Yes', items=[], apiDetail=null, errorMessage=''}){
+  return {name, searchUrl, count, reachable, items, apiDetail, errorMessage};
+}
+async function runSearchTask(task){
   try{
-    const wordOk = await exportWordReportLinked(true);
-    parts.push(wordOk ? "Word 报告：已导出。" : "Word 报告：未导出。");
+    const result = await task.run();
+    return buildTaskResult({
+      name: task.name,
+      searchUrl: task.searchUrl,
+      count: Array.isArray(result.items) ? result.items.length : 0,
+      reachable: 'Yes',
+      items: result.items || [],
+      apiDetail: result.apiDetail || null
+    });
   }catch(e){
-    parts.push("Word 报告：导出失败。");
-  }
-
-  parts.push("");
-  parts.push(buildLinkedExportSummary());
-  statusBox.textContent = parts.join("\n");
-}
-
-refreshProjectList();
-
-/* ===== Password manager v4 ===== */
-const RS_PWD_KEY = "research_system_v5_site_password_hash";
-const RS_LOGIN_KEY = "research_system_v5_logged_in";
-const RS_FAIL_KEY = "research_system_v5_fail_count";
-const RS_LOCK_KEY = "research_system_v5_lock_until";
-const RS_CUSTOM_KEY = "research_system_v5_custom_password";
-const RS_DEFAULT_PASSWORD_HASH = "840fc6db26b95e8c2563092e3ce9779b51dab270038bc90785f6e8814b1d037c";
-
-async function rsHash(text){
-  const enc = new TextEncoder().encode(String(text || ""));
-  const buf = await crypto.subtle.digest("SHA-256", enc);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
-}
-function rsNow(){ return Date.now(); }
-function getLockRemainingMs(){
-  const until = parseInt(localStorage.getItem(RS_LOCK_KEY) || "0", 10);
-  return Math.max(0, until - rsNow());
-}
-function setLoginMessage(text, color){
-  const msg = document.getElementById("loginMsg");
-  msg.textContent = text || "";
-  msg.style.color = color || "#dc2626";
-}
-function formatRemain(ms){
-  const sec = Math.ceil(ms / 1000);
-  return sec + " 秒";
-}
-async function ensureSitePassword(){
-  const isCustom = localStorage.getItem(RS_CUSTOM_KEY) === "1";
-  let saved = localStorage.getItem(RS_PWD_KEY);
-  if(!saved || !isCustom){
-    saved = RS_DEFAULT_PASSWORD_HASH;
-    localStorage.setItem(RS_PWD_KEY, saved);
-    localStorage.setItem(RS_CUSTOM_KEY, "0");
-  }
-  return saved;
-}
-function clearLoginRiskState(){
-  localStorage.removeItem(RS_FAIL_KEY);
-  localStorage.removeItem(RS_LOCK_KEY);
-}
-function recordLoginFailure(){
-  let fails = parseInt(localStorage.getItem(RS_FAIL_KEY) || "0", 10) + 1;
-  localStorage.setItem(RS_FAIL_KEY, String(fails));
-  if(fails >= 3){
-    const lockUntil = rsNow() + 60000;
-    localStorage.setItem(RS_LOCK_KEY, String(lockUntil));
-    localStorage.setItem(RS_FAIL_KEY, "0");
-    return {locked: true, remaining: 60000};
-  }
-  return {locked: false, fails};
-}
-function applyLoginState(logged){
-  document.getElementById("loginOverlay").style.display = logged ? "none" : "flex";
-  document.getElementById("pwdManagerBar").style.display = logged ? "flex" : "none";
-  if(!logged){
-    document.getElementById("pwdPanel").style.display = "none";
+    return buildTaskResult({
+      name: task.name,
+      searchUrl: task.searchUrl,
+      count: 0,
+      reachable: 'No',
+      items: [],
+      errorMessage: e.message || String(e)
+    });
   }
 }
-async function rsLogin(){
-  const input = document.getElementById("loginPasswordInput");
-  const pwd = input.value || "";
-  const remain = getLockRemainingMs();
-  if(remain > 0){
-    setLoginMessage("已临时锁定，请 " + formatRemain(remain) + " 后再试。", "#d97706");
+
+async function queryPubMed(text, mode, rows){
+  const raw = (text || '').trim();
+  let term = raw;
+  if(mode === 'doi'){
+    const doi = normalizeDOI(raw);
+    term = `"${doi}"[DOI]`;
+  }else if(mode === 'title'){
+    term = `${raw}[Title]`;
+  }
+  const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=${rows}&term=${encodeURIComponent(term)}`;
+  const res1 = await fetch(searchUrl);
+  if(!res1.ok) throw new Error('PubMed esearch 查询失败');
+  const data1 = await res1.json();
+  const ids = data1.esearchresult?.idlist || [];
+  if(!ids.length) return [];
+  const summaryUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=${ids.join(',')}`;
+  const res2 = await fetch(summaryUrl);
+  if(!res2.ok) throw new Error('PubMed esummary 查询失败');
+  const data2 = await res2.json();
+  const result = data2.result || {};
+  return ids.map(id => {
+    const item = result[id] || {};
+    const title = item.title || '(untitled)';
+    const journal = item.fulljournalname || item.source || '';
+    const pubdate = item.pubdate || '';
+    const authors = (item.authors || []).slice(0,6).map(a => a.name).filter(Boolean).join(', ');
+    const articleIds = item.articleids || [];
+    const doi = articleIds.find(x => (x.idtype || '').toLowerCase() === 'doi')?.value || '';
+    const pmcid = articleIds.find(x => (x.idtype || '').toLowerCase() === 'pmc')?.value || '';
+    const pdfUrl = pmcid ? `https://pmc.ncbi.nlm.nih.gov/articles/${pmcid}/pdf/` : '';
+    const links = [
+      {label:'PubMed', url:`https://pubmed.ncbi.nlm.nih.gov/${id}/`},
+      ...(pmcid ? [{label:'PMC', url:`https://pmc.ncbi.nlm.nih.gov/articles/${pmcid}/`},{label:'PDF', url:pdfUrl}] : []),
+      ...buildApiJumpLinks(title, doi).filter(link => link.label !== 'PubMed')
+    ];
+    return makeResultItem('PubMed', title, {journal, pubdate, authors, pmid:id}, links, {doi, pdfUrl, year:extractYear(pubdate), yearMonth:extractYearMonth(pubdate), openAccess: pmcid ? '是' : '未知'});
+  });
+}
+async function queryCrossrefByDOI(doi){
+  const url = `https://api.crossref.org/works/${encodeURIComponent(doi)}`;
+  const res = await fetch(url, {headers: {'Accept':'application/json'}});
+  if(!res.ok) throw new Error('Crossref DOI 查询失败');
+  const data = await res.json();
+  const m = data.message || {};
+  const title = (m.title && m.title[0]) || doi;
+  const journal = (m['container-title'] && m['container-title'][0]) || '';
+  const year = m.issued?.['date-parts']?.[0]?.[0] || '';
+  const month = m.issued?.['date-parts']?.[0]?.[1] || 1;
+  const authors = (m.author || []).slice(0,6).map(a => [a.family, a.given].filter(Boolean).join(' ')).filter(Boolean).join(', ');
+  const doiValue = m.DOI || doi;
+  const pdfUrl = (m.link || []).find(x => /pdf/i.test(x['content-type'] || '') || /\.pdf(\?|$)/i.test(x.URL || ''))?.URL || '';
+  const fullText = m.URL || (doiValue ? `https://doi.org/${doiValue}` : '');
+  const links = [
+    ...(fullText ? [{label:'Landing', url:fullText}] : []),
+    ...(pdfUrl ? [{label:'PDF', url:pdfUrl}] : []),
+    ...buildApiJumpLinks(title, doiValue).filter(link => link.label !== 'Crossref')
+  ];
+  return makeResultItem('Crossref', title, {journal, pubdate: year ? `${year}-${String(month).padStart(2,'0')}` : '', authors}, links, {doi:doiValue, pdfUrl, year:Number(year) || null, yearMonth: year ? `${year}-${String(Number(month)).padStart(2,'0')}` : '', openAccess: pdfUrl ? '可能可用' : '未知'});
+}
+async function queryCrossrefByText(text, mode, rows){
+  const params = new URLSearchParams();
+  if(mode === 'title') params.set('query.title', text); else params.set('query', text);
+  params.set('rows', rows);
+  const url = `https://api.crossref.org/works?${params.toString()}`;
+  const res = await fetch(url, {headers: {'Accept':'application/json'}});
+  if(!res.ok) throw new Error('Crossref 文本检索失败');
+  const data = await res.json();
+  const items = data.message?.items || [];
+  return items.map(m => {
+    const title = (m.title && m.title[0]) || '(untitled)';
+    const journal = (m['container-title'] && m['container-title'][0]) || '';
+    const year = m.issued?.['date-parts']?.[0]?.[0] || '';
+    const month = m.issued?.['date-parts']?.[0]?.[1] || 1;
+    const authors = (m.author || []).slice(0,5).map(a => [a.family, a.given].filter(Boolean).join(' ')).filter(Boolean).join(', ');
+    const doi = m.DOI || '';
+    const pdfUrl = (m.link || []).find(x => /pdf/i.test(x['content-type'] || '') || /\.pdf(\?|$)/i.test(x.URL || ''))?.URL || '';
+    const fullText = m.URL || (doi ? `https://doi.org/${doi}` : '');
+    const links = [
+      ...(fullText ? [{label:'Landing', url:fullText}] : []),
+      ...(pdfUrl ? [{label:'PDF', url:pdfUrl}] : []),
+      ...buildApiJumpLinks(title, doi).filter(link => link.label !== 'Crossref')
+    ];
+    return makeResultItem('Crossref', title, {journal, pubdate: year ? `${year}-${String(month).padStart(2,'0')}` : '', authors}, links, {doi, pdfUrl, year:Number(year) || null, yearMonth: year ? `${year}-${String(Number(month)).padStart(2,'0')}` : ''});
+  });
+}
+async function queryOpenAlex(text, mode, rows){
+  const params = new URLSearchParams();
+  if(mode === 'doi') params.set('filter', `doi:${normalizeDOI(text).toLowerCase()}`);
+  else params.set('search', text);
+  params.set('per-page', rows);
+  const url = `https://api.openalex.org/works?${params.toString()}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('OpenAlex 查询失败');
+  const data = await res.json();
+  const items = data.results || [];
+  return items.map(item => {
+    const title = item.display_name || '(untitled)';
+    const year = item.publication_year || '';
+    const doi = item.doi || '';
+    const journal = item.primary_location?.source?.display_name || '';
+    const oa = item.open_access?.is_oa ? '是' : '否';
+    const oaUrl = item.open_access?.oa_url || item.best_oa_location?.pdf_url || item.best_oa_location?.landing_page_url || '';
+    const pdfUrl = item.best_oa_location?.pdf_url || (oaUrl && /\.pdf(\?|$)/i.test(oaUrl) ? oaUrl : '');
+    const links = [
+      {label:'OpenAlex', url:item.id || `https://openalex.org/works?page=1&search=${enc(title)}`},
+      ...(oaUrl ? [{label: pdfUrl ? 'PDF' : '全文', url: oaUrl}] : []),
+      ...buildApiJumpLinks(title, doi).filter(link => link.label !== 'OpenAlex')
+    ];
+    return makeResultItem('OpenAlex', title, {journal, pubdate: year ? `${year}-01` : ''}, links, {doi, pdfUrl, year:Number(year) || null, yearMonth: year ? `${year}-01` : '', openAccess:oa});
+  });
+}
+async function queryEuropePMC(text, mode, rows){
+  const params = new URLSearchParams();
+  params.set('format', 'json');
+  params.set('pageSize', rows);
+  params.set('query', mode === 'doi' ? `DOI:"${normalizeDOI(text)}"` : text);
+  const url = `https://www.ebi.ac.uk/europepmc/webservices/rest/search?${params.toString()}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('Europe PMC 查询失败');
+  const data = await res.json();
+  const list = data.resultList?.result || [];
+  return list.map(item => {
+    const title = item.title || '(untitled)';
+    const year = item.pubYear || '';
+    const journal = item.journalTitle || item.bookOrReportDetails?.publisher || '';
+    const doi = item.doi || '';
+    const pmid = item.pmid || '';
+    const pmcid = item.pmcid || '';
+    const pdfUrl = pmcid ? `https://pmc.ncbi.nlm.nih.gov/articles/${pmcid}/pdf/` : '';
+    const articleUrl = item.id ? `https://europepmc.org/article/${encodeURIComponent(item.source || 'MED')}/${encodeURIComponent(item.id)}` : `https://europepmc.org/search?query=${enc(title)}`;
+    const links = [
+      {label:'Europe PMC', url:articleUrl},
+      ...(pmid ? [{label:'PubMed', url:`https://pubmed.ncbi.nlm.nih.gov/${pmid}/`}] : []),
+      ...(doi ? [{label:'DOI', url:`https://doi.org/${doi}`}] : []),
+      ...(pmcid ? [{label:'PMC', url:`https://pmc.ncbi.nlm.nih.gov/articles/${pmcid}/`},{label:'PDF', url:pdfUrl}] : []),
+      ...buildApiJumpLinks(title, doi).filter(link => !['Europe PMC','PubMed'].includes(link.label))
+    ];
+    return makeResultItem('Europe PMC', title, {journal, pubdate: year ? `${year}-01` : '', pmid}, links, {doi, pdfUrl, year:Number(year) || null, yearMonth: year ? `${year}-01` : '', openAccess: pmcid ? '是' : '未知'});
+  });
+}
+async function queryDOAJ(text, mode, rows){
+  const params = new URLSearchParams();
+  params.set('pageSize', rows);
+  params.set('q', mode === 'doi' ? `bibjson.identifier.id:${normalizeDOI(text)}` : text);
+  const url = `https://doaj.org/api/search/articles?q=${encodeURIComponent(params.get('q'))}&pageSize=${rows}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('DOAJ 查询失败');
+  const data = await res.json();
+  const list = data.results || [];
+  return list.map(item => {
+    const bib = item.bibjson || {};
+    const title = bib.title || '(untitled)';
+    const journal = bib.journal?.title || '';
+    const year = bib.year || '';
+    const month = bib.month || 1;
+    const doi = (bib.identifier || []).find(x => (x.type || '').toLowerCase() === 'doi')?.id || '';
+    const full = (bib.link || []).find(x => (x.type || '').toLowerCase().includes('fulltext') || /pdf/i.test(x.type || '') || /\.pdf(\?|$)/i.test(x.url || '')) || (bib.link || [])[0];
+    const pdfUrl = full?.url && /\.pdf(\?|$)/i.test(full.url) ? full.url : '';
+    const links = [
+      ...(full?.url ? [{label: pdfUrl ? 'PDF' : '全文', url: full.url}] : []),
+      ...buildApiJumpLinks(title, doi).filter(link => link.label !== 'DOAJ')
+    ];
+    return makeResultItem('DOAJ', title, {journal, pubdate: year ? `${year}-${String(Number(month)).padStart(2,'0')}` : ''}, links, {doi, pdfUrl, year:Number(year) || null, yearMonth: year ? `${year}-${String(Number(month)).padStart(2,'0')}` : '', openAccess:'是'});
+  });
+}
+async function queryArxiv(text, mode, rows){
+  if(mode === 'doi') return [];
+  const url = `https://export.arxiv.org/api/query?search_query=all:${enc(text)}&start=0&max_results=${rows}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('arXiv 查询失败');
+  const xml = await res.text();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'text/xml');
+  const entries = [...doc.getElementsByTagName('entry')].slice(0, rows);
+  return entries.map(entry => {
+    const title = (entry.getElementsByTagName('title')[0]?.textContent || '(untitled)').replace(/\s+/g, ' ').trim();
+    const published = entry.getElementsByTagName('published')[0]?.textContent || '';
+    const summary = (entry.getElementsByTagName('summary')[0]?.textContent || '').replace(/\s+/g, ' ').trim();
+    const id = entry.getElementsByTagName('id')[0]?.textContent || `https://arxiv.org/search/?query=${enc(title)}&searchtype=all`;
+    const pdfUrl = id ? id.replace('/abs/','/pdf/') + '.pdf' : '';
+    const links = [
+      {label:'arXiv 原文', url:id},
+      {label:'PDF', url:pdfUrl},
+      ...buildApiJumpLinks(title, '').filter(link => link.label !== 'arXiv')
+    ];
+    return makeResultItem('arXiv', title, {journal:'arXiv', pubdate: published ? published.slice(0,7) : '', summary: summary ? summary.slice(0,180) + (summary.length > 180 ? '…' : '') : ''}, links, {pdfUrl, year:extractYear(published), yearMonth:extractYearMonth(published), openAccess:'是'});
+  });
+}
+
+async function searchPapers(){
+  const q = getSearchInput();
+  const mode = document.getElementById('mode').value;
+  const rows = 5;
+  const box = document.getElementById('results');
+  const modeLabel = mode === 'doi' ? 'DOI' : mode === 'title' ? '文章题目' : '关键词';
+  const normalizedDoi = normalizeDOI(q).toLowerCase();
+  renderGrid();
+  if(!q){
+    setStatus('请先输入题目、DOI 或关键词。');
+    box.innerHTML = '<div class="empty">请输入检索内容后再查询。</div>';
     return;
   }
-  if(!pwd){
-    setLoginMessage("请输入密码。", "#dc2626");
-    return;
+  box.innerHTML = '<div class="empty">正在并发查询 API 池，请稍候…</div>';
+  setStatus(`正在检索 API 池：<b>${safeText(q)}</b>（类型：${modeLabel}）`);
+  const summaries = [];
+  const apiDetails = [];
+  const followLinks = getExternalPlatforms().filter(x => x.featured).slice(0,10).map(x => ({label:x.name, url:platformUrl(x)}));
+  const taskDefs = [
+    {
+      name: 'PubMed',
+      searchUrl: `https://pubmed.ncbi.nlm.nih.gov/?term=${enc(q)}`,
+      run: async () => {
+        const items = await queryPubMed(mode === 'doi' ? normalizedDoi : q, mode, rows);
+        return { items, apiDetail: items.length ? {name:'PubMed', searchUrl:`https://pubmed.ncbi.nlm.nih.gov/?term=${enc(q)}`, topTitle:q, topDoi: mode === 'doi' ? normalizedDoi : '', openAccess:'Partial/Unknown', bestLink:`https://pubmed.ncbi.nlm.nih.gov/?term=${enc(q)}`, extraLinks:[]} : null };
+      }
+    },
+    {
+      name: 'Crossref',
+      searchUrl: `https://search.crossref.org/?q=${enc(q)}`,
+      run: async () => {
+        if(mode === 'doi'){
+          try{
+            const item = await queryCrossrefByDOI(normalizedDoi);
+            return { items:[item], apiDetail:{name:'Crossref', searchUrl:`https://search.crossref.org/?q=${enc(q)}`, topTitle:q, topDoi: normalizedDoi, openAccess:'No/Unknown', bestLink:`https://doi.org/${encodeURIComponent(normalizedDoi)}`, extraLinks:[{label:'DOI 解析', url:`https://doi.org/${encodeURIComponent(normalizedDoi)}`}] } };
+          }catch(e){
+            const alt = await queryCrossrefByText(q, 'keyword', 3);
+            return { items:alt, apiDetail: alt.length ? {name:'Crossref', searchUrl:`https://search.crossref.org/?q=${enc(q)}`, topTitle:q, topDoi: normalizedDoi, openAccess:'No/Unknown', bestLink:`https://search.crossref.org/?q=${enc(q)}`, extraLinks:[{label:'DOI 解析', url:`https://doi.org/${encodeURIComponent(normalizedDoi)}`}] } : null };
+          }
+        }
+        const items = await queryCrossrefByText(q, mode, rows);
+        return { items, apiDetail: items.length ? {name:'Crossref', searchUrl:`https://search.crossref.org/?q=${enc(q)}`, topTitle:q, topDoi:'', openAccess:'No/Unknown', bestLink:`https://search.crossref.org/?q=${enc(q)}`, extraLinks:[]} : null };
+      }
+    },
+    {
+      name: 'OpenAlex',
+      searchUrl: mode === 'doi' && normalizedDoi ? `https://openalex.org/works?filter=doi:${encodeURIComponent(normalizedDoi)}` : `https://openalex.org/works?page=1&search=${enc(q)}`,
+      run: async () => {
+        const items = await queryOpenAlex(mode === 'doi' ? normalizedDoi : q, mode, rows);
+        return { items, apiDetail: items.length ? {name:'OpenAlex', searchUrl: mode === 'doi' && normalizedDoi ? `https://openalex.org/works?filter=doi:${encodeURIComponent(normalizedDoi)}` : `https://openalex.org/works?page=1&search=${enc(q)}`, topTitle:q, topDoi: mode === 'doi' ? normalizedDoi : '', openAccess:'Unknown', bestLink: mode === 'doi' && normalizedDoi ? `https://openalex.org/works?filter=doi:${encodeURIComponent(normalizedDoi)}` : `https://openalex.org/works?page=1&search=${enc(q)}`, extraLinks:[]} : null };
+      }
+    },
+    {
+      name: 'Europe PMC',
+      searchUrl: `https://europepmc.org/search?query=${enc(q)}`,
+      run: async () => {
+        const items = await queryEuropePMC(q, mode, rows);
+        return { items, apiDetail: items.length ? {name:'Europe PMC', searchUrl:`https://europepmc.org/search?query=${enc(q)}`, topTitle:q, topDoi: mode === 'doi' ? normalizedDoi : '', openAccess:'Partial/Unknown', bestLink:`https://europepmc.org/search?query=${enc(q)}`, extraLinks:[{label:'PubMed 页面', url:`https://pubmed.ncbi.nlm.nih.gov/?term=${enc(q)}`}] } : null };
+      }
+    },
+    {
+      name: 'DOAJ',
+      searchUrl: `https://doaj.org/api/search/articles?q=${enc(mode === 'doi' ? normalizedDoi : q)}`,
+      run: async () => {
+        const items = await queryDOAJ(q, mode, rows);
+        return { items, apiDetail: items.length ? {name:'DOAJ', searchUrl:`https://doaj.org/api/search/articles?q=${enc(mode === 'doi' ? normalizedDoi : q)}`, topTitle:q, topDoi: mode === 'doi' ? normalizedDoi : '', openAccess:'Yes', bestLink:`https://doaj.org/api/search/articles?q=${enc(mode === 'doi' ? normalizedDoi : q)}`, extraLinks:[]} : null };
+      }
+    },
+    {
+      name: 'arXiv',
+      searchUrl: `https://arxiv.org/search/?query=${enc(q)}&searchtype=all`,
+      run: async () => {
+        if(mode === 'doi') return { items:[], apiDetail:null };
+        const items = await queryArxiv(q, mode, rows);
+        return { items, apiDetail: items.length ? {name:'arXiv', searchUrl:`https://arxiv.org/search/?query=${enc(q)}&searchtype=all`, topTitle:q, topDoi:'', openAccess:'Yes', bestLink:`https://arxiv.org/search/?query=${enc(q)}&searchtype=all`, extraLinks:[]} : null };
+      }
+    }
+  ];
+  try{
+    const settled = await Promise.allSettled(taskDefs.map(task => runSearchTask(task)));
+    const taskResults = settled.map((item, index) => item.status === 'fulfilled' ? item.value : buildTaskResult({name: taskDefs[index].name, searchUrl: taskDefs[index].searchUrl, count:0, reachable:'No', items:[]}));
+    const allItems = [];
+    taskResults.forEach(res => {
+      allItems.push(...res.items);
+      summaries.push(makePlatformSummary(res.name, 'API', res.count, res.searchUrl, res.reachable));
+      if(res.apiDetail) apiDetails.push(res.apiDetail);
+    });
+    summaries.push(makePlatformSummary('Google Scholar', 'Manual link', 'N/A', `https://scholar.google.com/scholar?q=${enc(q)}`, 'N/A'));
+    summaries.push(makePlatformSummary('Scopus', 'Manual link', 'N/A', `https://www.scopus.com/results/results.uri?query=${enc(q)}`, 'N/A'));
+    summaries.push(makePlatformSummary('CNKI', 'Manual link', 'N/A', `https://kns.cnki.net/kns8s/search?kw=${enc(q)}`, 'N/A'));
+    const reportHtml = buildReportHtml(q, modeLabel, summaries, apiDetails, followLinks);
+    lastSearchState = { query:q, modeLabel, items:allItems, reportHtml };
+    renderMainResults();
+    renderFilterPanel();
+    applyResultFilters();
+    setStatus(`API池查询完成。当前共抓取 ${allItems.length} 条结构化结果。`);
+  }catch(e){
+    lastSearchState = null;
+    box.innerHTML = `<div class="empty">查询失败：${safeText(e.message || e)}</div>`;
+    renderFilterPanel();
+    document.getElementById('filterStats').innerHTML = '';
+    document.getElementById('filteredResults').innerHTML = '<div class="empty">筛选结果会显示在这里。</div>';
+    setStatus('API池查询失败，请检查网络或稍后重试。');
   }
-  const saved = await ensureSitePassword();
-  const incoming = await rsHash(pwd);
-  if(saved === incoming){
-    localStorage.setItem(RS_LOGIN_KEY, "1");
-    clearLoginRiskState();
-    applyLoginState(true);
-    setLoginMessage("");
-    input.value = "";
-  }else{
-    const state = recordLoginFailure();
-    input.value = "";
-    if(state.locked){
-      setLoginMessage("连续输错 3 次，已锁定 60 秒。", "#d97706");
-    }else{
-      const left = 3 - state.fails;
-      setLoginMessage("密码错误，还可尝试 " + left + " 次。", "#dc2626");
+}
+
+document.getElementById('query').addEventListener('input', () => { renderApiBar(); renderGrid(); });
+document.getElementById('customUrl').addEventListener('keydown', (e) => { if(e.key === 'Enter') addCustomFromUI(); });
+document.getElementById('customMode').addEventListener('change', (e) => {
+  const input = document.getElementById('customUrl');
+  input.placeholder = e.target.value === 'link' ? 'URL（纯跳转模式可直接填首页或任意网址）' : 'URL（自动搜索模式需包含 {q}）';
+});
+
+
+const PasswordGuard = (() => {
+  const STORAGE_KEY = ['doc','access','hash'].join('_');
+  const SESSION_KEY = ['doc','access','ok'].join('_');
+  const DEFAULT_HASH = ['840fc6db26b95e8c','2563092e3ce9779b','51dab270038bc907','85f6e8814b1d037c'].join('');
+
+  const appShell = document.getElementById('appShell');
+  const lockLayer = document.getElementById('lockLayer');
+  const accessPassword = document.getElementById('accessPassword');
+  const unlockBtn = document.getElementById('unlockBtn');
+  const clearPasswordBtn = document.getElementById('clearPasswordBtn');
+  const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+  const lockMessage = document.getElementById('lockMessage');
+  const securityFab = document.getElementById('securityFab');
+  const securityModal = document.getElementById('securityModal');
+  const managePasswordBtn = document.getElementById('managePasswordBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const currentPassword = document.getElementById('currentPassword');
+  const newPassword = document.getElementById('newPassword');
+  const confirmPassword = document.getElementById('confirmPassword');
+  const changePasswordBtn = document.getElementById('changePasswordBtn');
+  const resetDefaultBtn = document.getElementById('resetDefaultBtn');
+  const relockBtn = document.getElementById('relockBtn');
+  const closeSecurityBtn = document.getElementById('closeSecurityBtn');
+  const securityMessage = document.getElementById('securityMessage');
+
+  function ensureStoredHash(){
+    const existing = localStorage.getItem(STORAGE_KEY);
+    if(!existing) localStorage.setItem(STORAGE_KEY, DEFAULT_HASH);
+  }
+  function getStoredHash(){
+    ensureStoredHash();
+    return localStorage.getItem(STORAGE_KEY) || DEFAULT_HASH;
+  }
+  async function sha256(text){
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+  function setLockMessage(msg=''){
+    lockMessage.textContent = msg;
+  }
+  function setSecurityMessage(msg='', ok=false){
+    securityMessage.style.color = ok ? '#065f46' : '#374151';
+    securityMessage.textContent = msg;
+  }
+  function clearSecurityInputs(){
+    currentPassword.value = '';
+    newPassword.value = '';
+    confirmPassword.value = '';
+  }
+  function setAuthenticated(flag){
+    if(flag) sessionStorage.setItem(SESSION_KEY, '1');
+    else sessionStorage.removeItem(SESSION_KEY);
+  }
+  function unlockUI(){
+    lockLayer.style.display = 'none';
+    appShell.classList.remove('is-locked');
+    securityFab.classList.add('show');
+    managePasswordBtn.classList.add('show');
+    logoutBtn.classList.add('show');
+    accessPassword.value = '';
+    setLockMessage('');
+    setAuthenticated(true);
+  }
+  function lockUI(){
+    lockLayer.style.display = 'flex';
+    appShell.classList.add('is-locked');
+    securityFab.classList.remove('show');
+    managePasswordBtn.classList.remove('show');
+    logoutBtn.classList.remove('show');
+    securityModal.classList.remove('show');
+    clearSecurityInputs();
+    setSecurityMessage('');
+    setAuthenticated(false);
+    accessPassword.type = 'password';
+    togglePasswordBtn.textContent = '👁';
+    accessPassword.value = '';
+    setTimeout(() => accessPassword.focus(), 60);
+  }
+  async function tryUnlock(){
+    const raw = accessPassword.value || '';
+    if(!raw){
+      setLockMessage('请输入密码');
+      accessPassword.focus();
+      return;
+    }
+    unlockBtn.disabled = true;
+    setLockMessage('');
+    try{
+      const hashed = await sha256(raw);
+      if(hashed === getStoredHash()){
+        unlockUI();
+      }else{
+        setLockMessage('密码错误');
+      }
+    }catch(e){
+      setLockMessage('验证失败，请重试');
+    }finally{
+      unlockBtn.disabled = false;
     }
   }
-}
-function togglePwdPanel(){
-  const panel = document.getElementById("pwdPanel");
-  panel.style.display = panel.style.display === "block" ? "none" : "block";
-}
-async function changeSitePassword(){
-  const oldPwd = document.getElementById("oldPwdInput").value || "";
-  const newPwd = document.getElementById("newPwdInput").value || "";
-  const confirmPwd = document.getElementById("confirmPwdInput").value || "";
-  const msg = document.getElementById("pwdPanelMsg");
-  if(!oldPwd || !newPwd || !confirmPwd){ msg.textContent = "请把三个框都填完整。"; msg.style.color = "#dc2626"; return; }
-  if(newPwd.length < 4){ msg.textContent = "新密码至少 4 位。"; msg.style.color = "#dc2626"; return; }
-  if(/\s/.test(newPwd)){ msg.textContent = "新密码不要包含空格。"; msg.style.color = "#dc2626"; return; }
-  if(newPwd !== confirmPwd){ msg.textContent = "两次输入的新密码不一致。"; msg.style.color = "#dc2626"; return; }
-  const saved = await ensureSitePassword();
-  const oldHash = await rsHash(oldPwd);
-  if(saved !== oldHash){ msg.textContent = "当前密码不正确。"; msg.style.color = "#dc2626"; return; }
-  const newHash = await rsHash(newPwd);
-  localStorage.setItem(RS_PWD_KEY, newHash);
-  localStorage.setItem(RS_CUSTOM_KEY, "1");
-  document.getElementById("oldPwdInput").value = "";
-  document.getElementById("newPwdInput").value = "";
-  document.getElementById("confirmPwdInput").value = "";
-  clearLoginRiskState();
-  msg.textContent = "新密码已保存。";
-  msg.style.color = "#059669";
-}
-async function resetSitePassword(){
-  const ok = confirm("确认恢复默认密码吗？");
-  if(!ok) return;
-  localStorage.setItem(RS_PWD_KEY, RS_DEFAULT_PASSWORD_HASH);
-  localStorage.setItem(RS_CUSTOM_KEY, "0");
-  clearLoginRiskState();
-  document.getElementById("pwdPanelMsg").textContent = "已恢复默认密码。";
-  document.getElementById("pwdPanelMsg").style.color = "#d97706";
-}
-function logoutSite(){
-  localStorage.removeItem(RS_LOGIN_KEY);
-  applyLoginState(false);
-  document.getElementById("loginPasswordInput").value = "";
-  setLoginMessage("你已退出登录。", "#475569");
-}
-document.addEventListener("keydown", function(e){
-  if(e.key === "Enter" && document.getElementById("loginOverlay").style.display !== "none"){
-    rsLogin();
+  function openSecurity(){
+    securityModal.classList.add('show');
+    setSecurityMessage('');
+    clearSecurityInputs();
+    setTimeout(() => currentPassword.focus(), 60);
   }
-});
-window.addEventListener("load", async function(){
-  await ensureSitePassword();
-  fillCustomLinkInputs();
-  const logged = localStorage.getItem(RS_LOGIN_KEY) === "1";
-  applyLoginState(logged);
-  const remain = getLockRemainingMs();
-  if(!logged && remain > 0){
-    setLoginMessage("当前处于临时锁定状态，请 " + formatRemain(remain) + " 后再试。", "#d97706");
+  function closeSecurity(){
+    securityModal.classList.remove('show');
+    setSecurityMessage('');
+    clearSecurityInputs();
   }
-});
-window.addEventListener("beforeunload", function(){
-  localStorage.removeItem(RS_LOGIN_KEY);
-});</script>
+  async function changePassword(){
+    const current = currentPassword.value || '';
+    const next = newPassword.value || '';
+    const confirm = confirmPassword.value || '';
+    if(!current || !next || !confirm){
+      setSecurityMessage('请完整填写三项内容');
+      return;
+    }
+    if(next !== confirm){
+      setSecurityMessage('两次输入的新密码不一致');
+      return;
+    }
+    if(next.length < 4){
+      setSecurityMessage('新密码至少 4 位');
+      return;
+    }
+    const currentHash = await sha256(current);
+    if(currentHash !== getStoredHash()){
+      setSecurityMessage('当前密码不正确');
+      return;
+    }
+    const nextHash = await sha256(next);
+    localStorage.setItem(STORAGE_KEY, nextHash);
+    clearSecurityInputs();
+    setSecurityMessage('密码已修改', true);
+  }
+  async function restoreDefaultPassword(){
+    const current = currentPassword.value || '';
+    if(!current){
+      setSecurityMessage('请输入当前密码后再恢复默认');
+      return;
+    }
+    const currentHash = await sha256(current);
+    if(currentHash !== getStoredHash()){
+      setSecurityMessage('当前密码不正确');
+      return;
+    }
+    localStorage.setItem(STORAGE_KEY, DEFAULT_HASH);
+    clearSecurityInputs();
+    setSecurityMessage('已恢复默认密码', true);
+  }
+  function bind(){
+    unlockBtn.addEventListener('click', tryUnlock);
+    accessPassword.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter') tryUnlock();
+    });
+    clearPasswordBtn.addEventListener('click', () => {
+      accessPassword.value = '';
+      setLockMessage('');
+      accessPassword.focus();
+    });
+    togglePasswordBtn.addEventListener('click', () => {
+      const show = accessPassword.type === 'password';
+      accessPassword.type = show ? 'text' : 'password';
+      togglePasswordBtn.textContent = show ? '🙈' : '👁';
+      accessPassword.focus();
+      const len = accessPassword.value.length;
+      accessPassword.setSelectionRange(len, len);
+    });
+    securityFab.addEventListener('click', openSecurity);
+    managePasswordBtn.addEventListener('click', openSecurity);
+    logoutBtn.addEventListener('click', lockUI);
+    closeSecurityBtn.addEventListener('click', closeSecurity);
+    securityModal.addEventListener('click', (e) => {
+      if(e.target === securityModal) closeSecurity();
+    });
+    changePasswordBtn.addEventListener('click', changePassword);
+    resetDefaultBtn.addEventListener('click', restoreDefaultPassword);
+    relockBtn.addEventListener('click', lockUI);
+  }
+  function init(){
+    ensureStoredHash();
+    bind();
+    if(sessionStorage.getItem(SESSION_KEY) === '1'){
+      unlockUI();
+    }else{
+      lockUI();
+    }
+  }
+  return { init, lockUI };
+})();
+
+loadCustomPlatforms();
+renderApiBar();
+renderFilters();
+renderGrid();
+renderCustomList();
+renderFilterPanel();
+PasswordGuard.init();
+
+</script>
+  </div>
 </body>
 </html>
