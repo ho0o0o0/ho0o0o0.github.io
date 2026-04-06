@@ -660,6 +660,104 @@
       display:inline-flex;
     }
 
+
+    .api-health-wrap{
+      padding:0 20px 16px;
+      display:grid;
+      gap:12px;
+    }
+    .api-health-summary{
+      border:1px solid #dbeafe;
+      background:#f8fbff;
+      border-radius:16px;
+      padding:14px 16px;
+      line-height:1.8;
+      color:#1e3a8a;
+      font-size:14px;
+    }
+    .api-health-badges{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+    .api-health-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:9px 12px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:800;
+      border:1px solid #dbeafe;
+      background:#eff6ff;
+      color:#1d4ed8;
+    }
+    .api-health-badge.ok{
+      background:#ecfdf5;
+      border-color:#a7f3d0;
+      color:#065f46;
+    }
+    .api-health-badge.degraded{
+      background:#fff7ed;
+      border-color:#fdba74;
+      color:#9a3412;
+    }
+    .api-health-badge.error{
+      background:#fef2f2;
+      border-color:#fecaca;
+      color:#b91c1c;
+    }
+    .api-health-badge.skipped{
+      background:#f3f4f6;
+      border-color:#d1d5db;
+      color:#4b5563;
+    }
+    .api-health-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
+    .api-health-card{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:#fff;
+      padding:14px 16px;
+      line-height:1.75;
+    }
+    .api-health-card strong{
+      font-size:15px;
+    }
+    .api-health-links{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:10px;
+    }
+    .api-health-links a{
+      text-decoration:none;
+      padding:7px 10px;
+      border-radius:10px;
+      background:#eff6ff;
+      color:#1d4ed8;
+      font-size:13px;
+      font-weight:700;
+    }
+    .api-health-links a:hover{
+      background:#dbeafe;
+    }
+    .api-health-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:10px;
+    }
+    .api-health-actions button{
+      height:40px;
+      border-radius:12px;
+      padding:0 14px;
+      font-size:14px;
+    }
+
     @media (max-width:1100px){
       .grid{grid-template-columns:repeat(4,minmax(0,1fr));}
       .search-box{grid-template-columns:1fr 1fr;}
@@ -798,6 +896,9 @@
 
     <div class="section">
       <div class="hd">结果</div>
+      <div id="apiHealthWrap" class="api-health-wrap">
+        <div class="empty">执行检索后，这里会显示 API 健康状态、自动降级情况和手动补查建议。</div>
+      </div>
       <div class="results" id="results">
         <div class="empty">还没有结果。请先输入 DOI、文章标题或关键词，然后点击“开始查询”。API池会自动查询，外部入口池用于继续跳转补查。</div>
       </div>
@@ -1061,6 +1162,7 @@ function clearAllData(){
   document.getElementById('filterPanel').innerHTML = '<div class="empty">请先执行一次检索，随后可在这里按年份区间、年月范围、去重和 PDF 条件筛选结果。</div>';
   document.getElementById('filterStats').innerHTML = '';
   document.getElementById('filteredResults').innerHTML = '<div class="empty">筛选结果会显示在这里。</div>';
+  renderApiHealth([], '');
   setStatus('已清空。');
 }
 function openExternalFeatured(){
@@ -1071,6 +1173,145 @@ function openExternalFeatured(){
   setStatus(`已打开 1 个外部常用入口：<b>${safeText(items[0].name)}</b>${rest ? `。其余入口：${rest}` : ''}`);
 }
 function setStatus(msg){ document.getElementById('status').innerHTML = msg; }
+
+function retryCurrentSearch(){
+  if(!lastSearchState || !lastSearchState.query){
+    setStatus('请先执行一次检索。');
+    return;
+  }
+  setStatus('正在重新检测并刷新重试策略，请稍候…');
+  searchPapers(true);
+}
+function continueNextStep(){
+  const target = document.getElementById('filteredResults') || document.getElementById('results');
+  if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+  setStatus('已进入下一步。你可以继续查看结果、筛选、去重，或使用手动入口补查。');
+}
+
+const API_TIMEOUT_MS = 12000;
+const AUTO_RETRY_DELAY_MS = 650;
+
+function getManualFallbackLinks(q){
+  const query = enc(q || getQuery());
+  return [
+    {label:'Google Scholar', url:`https://scholar.google.com/scholar?q=${query}`},
+    {label:'Scopus', url:`https://www.scopus.com/results/results.uri?query=${query}`},
+    {label:'CNKI', url:`https://kns.cnki.net/kns8s/search?kw=${query}`},
+    {label:'PubMed 页面', url:`https://pubmed.ncbi.nlm.nih.gov/?term=${query}`},
+    {label:'OpenAlex 页面', url:`https://openalex.org/works?page=1&search=${query}`}
+  ];
+}
+function fetchWithTimeout(url, options={}, timeoutMs=API_TIMEOUT_MS){
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, {...options, signal: controller.signal})
+    .finally(() => clearTimeout(timer));
+}
+function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+function simplifySearchText(text){
+  const raw = String(text || '').trim();
+  if(!raw) return raw;
+  const parts = raw.split(/\s+/).filter(Boolean);
+  return parts.slice(0, 6).join(' ');
+}
+async function runAutoThreeStage({name, stage1, stage2, fallback}){
+  const attempts = [];
+  try{
+    const items = await stage1.run();
+    attempts.push(`第1步：${stage1.label} 成功`);
+    return {items, statusFlag: items.length ? 'ok' : 'empty', attempts, strategyLabel:'标准直连', errorMessage: items.length ? '' : `${name} 第1步未命中结果`};
+  }catch(e1){
+    attempts.push(`第1步：${stage1.label} 失败（${e1.name === 'AbortError' ? '超时' : (e1.message || '请求失败')}）`);
+  }
+  try{
+    await sleep(AUTO_RETRY_DELAY_MS);
+    const items = await stage2.run();
+    attempts.push(`第2步：${stage2.label} 成功`);
+    return {items, statusFlag: items.length ? 'ok' : 'empty', attempts, strategyLabel:'自动重试恢复', errorMessage: items.length ? `${name} 已通过第2步自动重试恢复` : `${name} 第2步未命中结果`};
+  }catch(e2){
+    attempts.push(`第2步：${stage2.label} 失败（${e2.name === 'AbortError' ? '超时' : (e2.message || '请求失败')}）`);
+  }
+  attempts.push(`第3步：${fallback.label}`);
+  return {
+    items: [],
+    statusFlag: 'degraded',
+    fallbackUsed: true,
+    attempts,
+    strategyLabel:'网页补查',
+    errorMessage: fallback.message,
+    apiDetail: fallback.apiDetail
+  };
+}
+function classifyTaskStatus(res){
+  if(res.statusFlag) return res.statusFlag;
+  if(res.reachable !== 'Yes') return 'error';
+  return res.count > 0 ? 'ok' : 'empty';
+}
+function statusMeta(flag){
+  if(flag === 'ok') return {label:'正常', cls:'ok', icon:'✅'};
+  if(flag === 'degraded') return {label:'已降级', cls:'degraded', icon:'⚠️'};
+  if(flag === 'empty') return {label:'无命中', cls:'degraded', icon:'🟡'};
+  if(flag === 'skipped') return {label:'已跳过', cls:'skipped', icon:'⏭️'};
+  return {label:'失败', cls:'error', icon:'❌'};
+}
+function buildHealthSummary(taskResults){
+  const ok = taskResults.filter(x => classifyTaskStatus(x) === 'ok').length;
+  const degraded = taskResults.filter(x => classifyTaskStatus(x) === 'degraded').length;
+  const empty = taskResults.filter(x => classifyTaskStatus(x) === 'empty').length;
+  const skipped = taskResults.filter(x => classifyTaskStatus(x) === 'skipped').length;
+  const failed = taskResults.filter(x => classifyTaskStatus(x) === 'error').length;
+  return {ok, degraded, empty, skipped, failed, total: taskResults.length};
+}
+function renderApiHealth(taskResults, query){
+  const box = document.getElementById('apiHealthWrap');
+  if(!box) return;
+  if(!taskResults || !taskResults.length){
+    box.innerHTML = '<div class="empty">执行检索后，这里会显示 API 健康状态、自动降级情况和手动补查建议。</div>';
+    return;
+  }
+  const stats = buildHealthSummary(taskResults);
+  const bad = taskResults.filter(x => ['error','degraded','empty'].includes(classifyTaskStatus(x)));
+  const summaryText = [];
+  summaryText.push(`本次共检测 <b>${stats.total}</b> 个 API：正常 <b>${stats.ok}</b> 个，自动降级 <b>${stats.degraded}</b> 个，无命中 <b>${stats.empty}</b> 个，失败 <b>${stats.failed}</b> 个${stats.skipped ? `，已跳过 <b>${stats.skipped}</b> 个` : ''}。`);
+  if(stats.failed > 0 || stats.degraded > 0){
+    summaryText.push('系统已自动执行三段式策略：标准 API → 保守重试 → 网页补查；失败源不会阻塞整体结果。');
+  }else{
+    summaryText.push('当前所有需要参与的 API 均可用，可直接查看结果与筛选区。');
+  }
+  const badges = taskResults.map(res => {
+    const meta = statusMeta(classifyTaskStatus(res));
+    const detail = res.durationMs ? ` · ${res.durationMs}ms` : '';
+    return `<span class="api-health-badge ${meta.cls}" title="${safeText(res.errorMessage || '')}">${meta.icon} ${safeText(res.name)} ${meta.label}${detail}</span>`;
+  }).join('');
+  const cards = bad.length ? bad.map(res => {
+    const meta = statusMeta(classifyTaskStatus(res));
+    const reason = res.errorMessage ? safeText(res.errorMessage) : (classifyTaskStatus(res) === 'empty' ? '当前检索词未命中结果。' : '已自动跳过。');
+    const searchLink = res.searchUrl ? `<a target="_blank" rel="noopener noreferrer" href="${res.searchUrl}">打开 ${safeText(res.name)} 页面</a>` : '';
+    const manualLinks = getManualFallbackLinks(query).slice(0,3).map(link => `<a target="_blank" rel="noopener noreferrer" href="${link.url}">${safeText(link.label)}</a>`).join('');
+    const attemptsHtml = (res.attempts || []).length ? `<div class="helper" style="margin-top:8px;"><b>自动重试轨迹：</b><br>${res.attempts.map(x => safeText(x)).join('<br>')}</div>` : '';
+    const strategyHtml = res.strategyLabel ? `<span class="muted">策略：${safeText(res.strategyLabel)}</span><br>` : '';
+    return `<div class="api-health-card">
+      <strong>${meta.icon} ${safeText(res.name)} · ${meta.label}</strong><br>
+      ${strategyHtml}
+      <span class="muted">原因：${reason}</span><br>
+      <span class="muted">处理：已自动使用其余 API 继续检索${res.fallbackUsed ? '，并启用无感降级' : ''}。</span>
+      ${attemptsHtml}
+      <div class="api-health-links">${searchLink}${manualLinks}</div>
+    </div>`;
+  }).join('') : `<div class="api-health-card"><strong>✅ API 健康状态良好</strong><br><span class="muted">当前没有需要人工介入的 API。若想扩大检索范围，仍可使用 Google Scholar、Scopus、CNKI 等外部入口做人工补查。</span><div class="api-health-links">${getManualFallbackLinks(query).slice(0,4).map(link => `<a target="_blank" rel="noopener noreferrer" href="${link.url}">${safeText(link.label)}</a>`).join('')}</div></div>`;
+  const showActions = (stats.failed > 0 || stats.degraded > 0);
+  box.innerHTML = `
+    <div class="api-health-summary">
+      ${summaryText.join('<br>')}
+      ${showActions ? `<div class="api-health-actions">
+        <button class="primary" onclick="retryCurrentSearch()">重新检测（刷新策略）</button>
+        <button class="ghost" onclick="continueNextStep()">继续下一步</button>
+      </div>` : ''}
+    </div>
+    <div class="api-health-badges">${badges}</div>
+    <div class="api-health-grid">${cards}</div>
+  `;
+}
 
 function buildApiJumpLinks(title, doi=''){
   const cleanTitle = (title || '').trim();
@@ -1331,10 +1572,11 @@ function resetResultFilters(){
   renderFilterPanel();
   applyResultFilters();
 }
-function buildTaskResult({name, searchUrl, count=0, reachable='Yes', items=[], apiDetail=null, errorMessage=''}){
-  return {name, searchUrl, count, reachable, items, apiDetail, errorMessage};
+function buildTaskResult({name, searchUrl, count=0, reachable='Yes', items=[], apiDetail=null, errorMessage='', durationMs=0, statusFlag='', fallbackUsed=false, attempts=[], strategyLabel=''}){
+  return {name, searchUrl, count, reachable, items, apiDetail, errorMessage, durationMs, statusFlag, fallbackUsed, attempts, strategyLabel};
 }
 async function runSearchTask(task){
+  const start = performance.now();
   try{
     const result = await task.run();
     return buildTaskResult({
@@ -1343,7 +1585,13 @@ async function runSearchTask(task){
       count: Array.isArray(result.items) ? result.items.length : 0,
       reachable: 'Yes',
       items: result.items || [],
-      apiDetail: result.apiDetail || null
+      apiDetail: result.apiDetail || null,
+      durationMs: Math.round(performance.now() - start),
+      statusFlag: result.statusFlag || (Array.isArray(result.items) && result.items.length ? 'ok' : 'empty'),
+      fallbackUsed: !!result.fallbackUsed,
+      errorMessage: result.errorMessage || '',
+      attempts: result.attempts || [],
+      strategyLabel: result.strategyLabel || ''
     });
   }catch(e){
     return buildTaskResult({
@@ -1352,7 +1600,9 @@ async function runSearchTask(task){
       count: 0,
       reachable: 'No',
       items: [],
-      errorMessage: e.message || String(e)
+      errorMessage: e.name === 'AbortError' ? '请求超时' : (e.message || String(e)),
+      durationMs: Math.round(performance.now() - start),
+      statusFlag: 'error'
     });
   }
 }
@@ -1367,13 +1617,13 @@ async function queryPubMed(text, mode, rows){
     term = `${raw}[Title]`;
   }
   const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=${rows}&term=${encodeURIComponent(term)}`;
-  const res1 = await fetch(searchUrl);
+  const res1 = await fetchWithTimeout(searchUrl);
   if(!res1.ok) throw new Error('PubMed esearch 查询失败');
   const data1 = await res1.json();
   const ids = data1.esearchresult?.idlist || [];
   if(!ids.length) return [];
   const summaryUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=${ids.join(',')}`;
-  const res2 = await fetch(summaryUrl);
+  const res2 = await fetchWithTimeout(summaryUrl);
   if(!res2.ok) throw new Error('PubMed esummary 查询失败');
   const data2 = await res2.json();
   const result = data2.result || {};
@@ -1397,7 +1647,7 @@ async function queryPubMed(text, mode, rows){
 }
 async function queryCrossrefByDOI(doi){
   const url = `https://api.crossref.org/works/${encodeURIComponent(doi)}`;
-  const res = await fetch(url, {headers: {'Accept':'application/json'}});
+  const res = await fetchWithTimeout(url, {headers: {'Accept':'application/json'}});
   if(!res.ok) throw new Error('Crossref DOI 查询失败');
   const data = await res.json();
   const m = data.message || {};
@@ -1421,7 +1671,7 @@ async function queryCrossrefByText(text, mode, rows){
   if(mode === 'title') params.set('query.title', text); else params.set('query', text);
   params.set('rows', rows);
   const url = `https://api.crossref.org/works?${params.toString()}`;
-  const res = await fetch(url, {headers: {'Accept':'application/json'}});
+  const res = await fetchWithTimeout(url, {headers: {'Accept':'application/json'}});
   if(!res.ok) throw new Error('Crossref 文本检索失败');
   const data = await res.json();
   const items = data.message?.items || [];
@@ -1448,7 +1698,7 @@ async function queryOpenAlex(text, mode, rows){
   else params.set('search', text);
   params.set('per-page', rows);
   const url = `https://api.openalex.org/works?${params.toString()}`;
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url);
   if(!res.ok) throw new Error('OpenAlex 查询失败');
   const data = await res.json();
   const items = data.results || [];
@@ -1474,7 +1724,7 @@ async function queryEuropePMC(text, mode, rows){
   params.set('pageSize', rows);
   params.set('query', mode === 'doi' ? `DOI:"${normalizeDOI(text)}"` : text);
   const url = `https://www.ebi.ac.uk/europepmc/webservices/rest/search?${params.toString()}`;
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url);
   if(!res.ok) throw new Error('Europe PMC 查询失败');
   const data = await res.json();
   const list = data.resultList?.result || [];
@@ -1502,7 +1752,7 @@ async function queryDOAJ(text, mode, rows){
   params.set('pageSize', rows);
   params.set('q', mode === 'doi' ? `bibjson.identifier.id:${normalizeDOI(text)}` : text);
   const url = `https://doaj.org/api/search/articles?q=${encodeURIComponent(params.get('q'))}&pageSize=${rows}`;
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url);
   if(!res.ok) throw new Error('DOAJ 查询失败');
   const data = await res.json();
   const list = data.results || [];
@@ -1525,7 +1775,7 @@ async function queryDOAJ(text, mode, rows){
 async function queryArxiv(text, mode, rows){
   if(mode === 'doi') return [];
   const url = `https://export.arxiv.org/api/query?search_query=all:${enc(text)}&start=0&max_results=${rows}`;
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url);
   if(!res.ok) throw new Error('arXiv 查询失败');
   const xml = await res.text();
   const parser = new DOMParser();
@@ -1546,7 +1796,7 @@ async function queryArxiv(text, mode, rows){
   });
 }
 
-async function searchPapers(){
+async function searchPapers(isRetry=false){
   const q = getSearchInput();
   const mode = document.getElementById('mode').value;
   const rows = 5;
@@ -1560,7 +1810,7 @@ async function searchPapers(){
     return;
   }
   box.innerHTML = '<div class="empty">正在并发查询 API 池，请稍候…</div>';
-  setStatus(`正在检索 API 池：<b>${safeText(q)}</b>（类型：${modeLabel}）`);
+  setStatus(`${isRetry ? '正在重新调试异常 API：' : '正在检索 API 池：'}<b>${safeText(q)}</b>（类型：${modeLabel}）`);
   const summaries = [];
   const apiDetails = [];
   const followLinks = getExternalPlatforms().filter(x => x.featured).slice(0,10).map(x => ({label:x.name, url:platformUrl(x)}));
@@ -1570,7 +1820,7 @@ async function searchPapers(){
       searchUrl: `https://pubmed.ncbi.nlm.nih.gov/?term=${enc(q)}`,
       run: async () => {
         const items = await queryPubMed(mode === 'doi' ? normalizedDoi : q, mode, rows);
-        return { items, apiDetail: items.length ? {name:'PubMed', searchUrl:`https://pubmed.ncbi.nlm.nih.gov/?term=${enc(q)}`, topTitle:q, topDoi: mode === 'doi' ? normalizedDoi : '', openAccess:'Partial/Unknown', bestLink:`https://pubmed.ncbi.nlm.nih.gov/?term=${enc(q)}`, extraLinks:[]} : null };
+        return { items, statusFlag: items.length ? 'ok' : 'empty', apiDetail: items.length ? {name:'PubMed', searchUrl:`https://pubmed.ncbi.nlm.nih.gov/?term=${enc(q)}`, topTitle:q, topDoi: mode === 'doi' ? normalizedDoi : '', openAccess:'Partial/Unknown', bestLink:`https://pubmed.ncbi.nlm.nih.gov/?term=${enc(q)}`, extraLinks:[]} : null };
       }
     },
     {
@@ -1580,14 +1830,14 @@ async function searchPapers(){
         if(mode === 'doi'){
           try{
             const item = await queryCrossrefByDOI(normalizedDoi);
-            return { items:[item], apiDetail:{name:'Crossref', searchUrl:`https://search.crossref.org/?q=${enc(q)}`, topTitle:q, topDoi: normalizedDoi, openAccess:'No/Unknown', bestLink:`https://doi.org/${encodeURIComponent(normalizedDoi)}`, extraLinks:[{label:'DOI 解析', url:`https://doi.org/${encodeURIComponent(normalizedDoi)}`}] } };
+            return { items:[item], statusFlag:'ok', apiDetail:{name:'Crossref', searchUrl:`https://search.crossref.org/?q=${enc(q)}`, topTitle:q, topDoi: normalizedDoi, openAccess:'No/Unknown', bestLink:`https://doi.org/${encodeURIComponent(normalizedDoi)}`, extraLinks:[{label:'DOI 解析', url:`https://doi.org/${encodeURIComponent(normalizedDoi)}`}] } };
           }catch(e){
             const alt = await queryCrossrefByText(q, 'keyword', 3);
-            return { items:alt, apiDetail: alt.length ? {name:'Crossref', searchUrl:`https://search.crossref.org/?q=${enc(q)}`, topTitle:q, topDoi: normalizedDoi, openAccess:'No/Unknown', bestLink:`https://search.crossref.org/?q=${enc(q)}`, extraLinks:[{label:'DOI 解析', url:`https://doi.org/${encodeURIComponent(normalizedDoi)}`}] } : null };
+            return { items:alt, statusFlag: alt.length ? 'degraded' : 'empty', fallbackUsed: true, errorMessage: 'Crossref DOI 精确解析失败，已自动降级为文本检索', apiDetail: alt.length ? {name:'Crossref', searchUrl:`https://search.crossref.org/?q=${enc(q)}`, topTitle:q, topDoi: normalizedDoi, openAccess:'No/Unknown', bestLink:`https://search.crossref.org/?q=${enc(q)}`, extraLinks:[{label:'DOI 解析', url:`https://doi.org/${encodeURIComponent(normalizedDoi)}`}] } : null };
           }
         }
         const items = await queryCrossrefByText(q, mode, rows);
-        return { items, apiDetail: items.length ? {name:'Crossref', searchUrl:`https://search.crossref.org/?q=${enc(q)}`, topTitle:q, topDoi:'', openAccess:'No/Unknown', bestLink:`https://search.crossref.org/?q=${enc(q)}`, extraLinks:[]} : null };
+        return { items, statusFlag: items.length ? 'ok' : 'empty', apiDetail: items.length ? {name:'Crossref', searchUrl:`https://search.crossref.org/?q=${enc(q)}`, topTitle:q, topDoi:'', openAccess:'No/Unknown', bestLink:`https://search.crossref.org/?q=${enc(q)}`, extraLinks:[]} : null };
       }
     },
     {
@@ -1595,7 +1845,7 @@ async function searchPapers(){
       searchUrl: mode === 'doi' && normalizedDoi ? `https://openalex.org/works?filter=doi:${encodeURIComponent(normalizedDoi)}` : `https://openalex.org/works?page=1&search=${enc(q)}`,
       run: async () => {
         const items = await queryOpenAlex(mode === 'doi' ? normalizedDoi : q, mode, rows);
-        return { items, apiDetail: items.length ? {name:'OpenAlex', searchUrl: mode === 'doi' && normalizedDoi ? `https://openalex.org/works?filter=doi:${encodeURIComponent(normalizedDoi)}` : `https://openalex.org/works?page=1&search=${enc(q)}`, topTitle:q, topDoi: mode === 'doi' ? normalizedDoi : '', openAccess:'Unknown', bestLink: mode === 'doi' && normalizedDoi ? `https://openalex.org/works?filter=doi:${encodeURIComponent(normalizedDoi)}` : `https://openalex.org/works?page=1&search=${enc(q)}`, extraLinks:[]} : null };
+        return { items, statusFlag: items.length ? 'ok' : 'empty', apiDetail: items.length ? {name:'OpenAlex', searchUrl: mode === 'doi' && normalizedDoi ? `https://openalex.org/works?filter=doi:${encodeURIComponent(normalizedDoi)}` : `https://openalex.org/works?page=1&search=${enc(q)}`, topTitle:q, topDoi: mode === 'doi' ? normalizedDoi : '', openAccess:'Unknown', bestLink: mode === 'doi' && normalizedDoi ? `https://openalex.org/works?filter=doi:${encodeURIComponent(normalizedDoi)}` : `https://openalex.org/works?page=1&search=${enc(q)}`, extraLinks:[]} : null };
       }
     },
     {
@@ -1603,30 +1853,103 @@ async function searchPapers(){
       searchUrl: `https://europepmc.org/search?query=${enc(q)}`,
       run: async () => {
         const items = await queryEuropePMC(q, mode, rows);
-        return { items, apiDetail: items.length ? {name:'Europe PMC', searchUrl:`https://europepmc.org/search?query=${enc(q)}`, topTitle:q, topDoi: mode === 'doi' ? normalizedDoi : '', openAccess:'Partial/Unknown', bestLink:`https://europepmc.org/search?query=${enc(q)}`, extraLinks:[{label:'PubMed 页面', url:`https://pubmed.ncbi.nlm.nih.gov/?term=${enc(q)}`}] } : null };
+        return { items, statusFlag: items.length ? 'ok' : 'empty', apiDetail: items.length ? {name:'Europe PMC', searchUrl:`https://europepmc.org/search?query=${enc(q)}`, topTitle:q, topDoi: mode === 'doi' ? normalizedDoi : '', openAccess:'Partial/Unknown', bestLink:`https://europepmc.org/search?query=${enc(q)}`, extraLinks:[{label:'PubMed 页面', url:`https://pubmed.ncbi.nlm.nih.gov/?term=${enc(q)}`}] } : null };
       }
     },
     {
       name: 'DOAJ',
-      searchUrl: `https://doaj.org/api/search/articles?q=${enc(mode === 'doi' ? normalizedDoi : q)}`,
+      searchUrl: `https://doaj.org/search/articles?ref=homepage-search&query=${enc(mode === 'doi' ? normalizedDoi : q)}`,
       run: async () => {
-        const items = await queryDOAJ(q, mode, rows);
-        return { items, apiDetail: items.length ? {name:'DOAJ', searchUrl:`https://doaj.org/api/search/articles?q=${enc(mode === 'doi' ? normalizedDoi : q)}`, topTitle:q, topDoi: mode === 'doi' ? normalizedDoi : '', openAccess:'Yes', bestLink:`https://doaj.org/api/search/articles?q=${enc(mode === 'doi' ? normalizedDoi : q)}`, extraLinks:[]} : null };
+        const fallbackUrl = `https://doaj.org/search/articles?ref=homepage-search&query=${enc(mode === 'doi' ? normalizedDoi : q)}`;
+        const simpleQuery = mode === 'doi' ? normalizedDoi : simplifySearchText(q);
+        const result = await runAutoThreeStage({
+          name:'DOAJ',
+          stage1:{
+            label:'标准 API 直连',
+            run: async () => queryDOAJ(q, mode, rows)
+          },
+          stage2:{
+            label:'保守模式重试（简化关键词 + 减少返回条数）',
+            run: async () => queryDOAJ(simpleQuery, mode === 'doi' ? 'doi' : 'keyword', Math.min(rows, 3))
+          },
+          fallback:{
+            label:'切换到 DOAJ 搜索页补查',
+            message:'DOAJ API 连续两次不可用，系统已自动切换到 DOAJ 搜索页继续检索',
+            apiDetail:{
+              name:'DOAJ',
+              searchUrl:fallbackUrl,
+              topTitle:q,
+              topDoi: mode === 'doi' ? normalizedDoi : '',
+              openAccess:'Yes',
+              bestLink:fallbackUrl,
+              extraLinks:[{label:'DOAJ 搜索页', url:fallbackUrl}]
+            }
+          }
+        });
+        if(result.items && result.items.length){
+          result.apiDetail = {
+            name:'DOAJ',
+            searchUrl:fallbackUrl,
+            topTitle:q,
+            topDoi: mode === 'doi' ? normalizedDoi : '',
+            openAccess:'Yes',
+            bestLink:fallbackUrl,
+            extraLinks:[{label:'DOAJ 搜索页', url:fallbackUrl}]
+          };
+        }
+        return result;
       }
     },
     {
       name: 'arXiv',
       searchUrl: `https://arxiv.org/search/?query=${enc(q)}&searchtype=all`,
       run: async () => {
-        if(mode === 'doi') return { items:[], apiDetail:null };
-        const items = await queryArxiv(q, mode, rows);
-        return { items, apiDetail: items.length ? {name:'arXiv', searchUrl:`https://arxiv.org/search/?query=${enc(q)}&searchtype=all`, topTitle:q, topDoi:'', openAccess:'Yes', bestLink:`https://arxiv.org/search/?query=${enc(q)}&searchtype=all`, extraLinks:[]} : null };
+        if(mode === 'doi') return { items:[], statusFlag:'skipped', errorMessage:'DOI 模式下跳过 arXiv 预印本检索', apiDetail:null, attempts:['第1步：检测到 DOI 模式，自动跳过预印本源'] };
+        const fallbackUrl = `https://arxiv.org/search/?query=${enc(q)}&searchtype=all`;
+        const simpleQuery = simplifySearchText(q);
+        const result = await runAutoThreeStage({
+          name:'arXiv',
+          stage1:{
+            label:'标准 Atom API 直连',
+            run: async () => queryArxiv(q, mode, rows)
+          },
+          stage2:{
+            label:'保守模式重试（简化关键词 + fewer results）',
+            run: async () => queryArxiv(simpleQuery, mode, Math.min(rows, 3))
+          },
+          fallback:{
+            label:'切换到 arXiv 搜索页补查',
+            message:'arXiv API 连续两次不可用，系统已自动切换到 arXiv 搜索页继续检索',
+            apiDetail:{
+              name:'arXiv',
+              searchUrl:fallbackUrl,
+              topTitle:q,
+              topDoi:'',
+              openAccess:'Yes',
+              bestLink:fallbackUrl,
+              extraLinks:[{label:'arXiv 搜索页', url:fallbackUrl}]
+            }
+          }
+        });
+        if(result.items && result.items.length){
+          result.apiDetail = {
+            name:'arXiv',
+            searchUrl:fallbackUrl,
+            topTitle:q,
+            topDoi:'',
+            openAccess:'Yes',
+            bestLink:fallbackUrl,
+            extraLinks:[{label:'arXiv 搜索页', url:fallbackUrl}]
+          };
+        }
+        return result;
       }
     }
   ];
   try{
     const settled = await Promise.allSettled(taskDefs.map(task => runSearchTask(task)));
-    const taskResults = settled.map((item, index) => item.status === 'fulfilled' ? item.value : buildTaskResult({name: taskDefs[index].name, searchUrl: taskDefs[index].searchUrl, count:0, reachable:'No', items:[]}));
+    const taskResults = settled.map((item, index) => item.status === 'fulfilled' ? item.value : buildTaskResult({name: taskDefs[index].name, searchUrl: taskDefs[index].searchUrl, count:0, reachable:'No', items:[], statusFlag:'error', errorMessage:'任务执行失败'}));
+    renderApiHealth(taskResults, q);
     const allItems = [];
     taskResults.forEach(res => {
       allItems.push(...res.items);
@@ -1637,13 +1960,16 @@ async function searchPapers(){
     summaries.push(makePlatformSummary('Scopus', 'Manual link', 'N/A', `https://www.scopus.com/results/results.uri?query=${enc(q)}`, 'N/A'));
     summaries.push(makePlatformSummary('CNKI', 'Manual link', 'N/A', `https://kns.cnki.net/kns8s/search?kw=${enc(q)}`, 'N/A'));
     const reportHtml = buildReportHtml(q, modeLabel, summaries, apiDetails, followLinks);
-    lastSearchState = { query:q, modeLabel, items:allItems, reportHtml };
+    lastSearchState = { query:q, modeLabel, items:allItems, reportHtml, taskResults };
     renderMainResults();
     renderFilterPanel();
     applyResultFilters();
-    setStatus(`API池查询完成。当前共抓取 ${allItems.length} 条结构化结果。`);
+    const health = buildHealthSummary(taskResults);
+    const warn = (health.failed || health.degraded) ? `；其中失败 ${health.failed} 个，已降级 ${health.degraded} 个` : '';
+    setStatus(`${isRetry ? '重新检测完成' : 'API池查询完成'}。当前共抓取 ${allItems.length} 条结构化结果${warn}。${(health.failed || health.degraded) ? '系统已自动执行三段式重试，你可以直接进入下一步，或再次刷新策略。' : '当前可直接进入下一步。'}`);
   }catch(e){
     lastSearchState = null;
+    renderApiHealth([], '');
     box.innerHTML = `<div class="empty">查询失败：${safeText(e.message || e)}</div>`;
     renderFilterPanel();
     document.getElementById('filterStats').innerHTML = '';
@@ -1859,6 +2185,7 @@ renderFilters();
 renderGrid();
 renderCustomList();
 renderFilterPanel();
+renderApiHealth([], '');
 PasswordGuard.init();
 
 </script>
