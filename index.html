@@ -80,6 +80,12 @@
       border-color:#bfd7ff; box-shadow:0 4px 14px rgba(37,99,235,.08);
       transform:translateY(-1px);
     }
+    .platform-card.draggable{ cursor:grab; user-select:none; }
+    .platform-card.dragging{ opacity:.55; transform:scale(.98); }
+    .platform-card.drag-over{
+      border-color:var(--brand); box-shadow:0 0 0 3px rgba(37,99,235,.16);
+      background:#f0f7ff;
+    }
     .platform-card a{ color:var(--brand); text-decoration:none; font-weight:700; font-size:15px; line-height:1.4; }
     .platform-card small{ display:block; margin-top:8px; color:var(--muted); line-height:1.5; font-size:12px; }
     .search-box{
@@ -127,11 +133,6 @@
       display:grid; grid-template-columns:1fr 1.6fr 170px 170px 160px 130px;
       gap:12px; align-items:center;
     }
-    .featured-check{
-      display:flex; align-items:center; gap:8px; padding:0 4px; color:#374151;
-      font-size:14px; font-weight:700; white-space:nowrap;
-    }
-    .featured-check input{ width:16px; height:16px; }
     .custom-item{
       display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:12px;
       border:1px solid #c7dcff; background:#eff6ff; color:#1e3a8a; font-size:14px; line-height:1.4;
@@ -314,24 +315,24 @@
       </div>
 
       <div class="hero">
-        <h1>文献查询助手</h1>
-        <p>支持 DOI、文章标题、关键词检索。上方为 API 自动检索源，中部展示统一结果区，下方保留外部入口池与自定义入口，方便继续跳转到 Scholar、Scopus、CNKI 等平台做人工核对。</p>
+        <h1>文献检索助手</h1>
+        <p>支持 DOI、题名和关键词检索。系统会优先从已接入的数据源自动返回结果，并提供补充检索入口，方便跳转至 Scholar、Scopus、CNKI 等平台进一步核对。</p>
       </div>
 
       <div class="section">
-        <div class="hd">自动检索 API</div>
+        <div class="hd">自动检索源</div>
         <div class="featured-bar" id="apiBar"></div>
       </div>
 
       <div class="section">
-        <div class="hd">外部入口池与自定义入口</div>
+        <div class="hd">自定义入口</div>
         <div class="bd">
           <div class="custom-manager">
-            <input type="text" id="customName" placeholder="名称（如 My PubMed）" />
-            <input type="text" id="customUrl" placeholder="URL（自动搜索模式需包含 {q}；纯跳转模式可直接填网址）" />
+            <input type="text" id="customName" placeholder="入口名称（如 My PubMed）" />
+            <input type="text" id="customUrl" placeholder="入口地址（自动检索需包含 {q}）" />
             <select id="customMode">
-              <option value="search">自动搜索（带 {q}）</option>
-              <option value="link">纯跳转（仅打开网址）</option>
+              <option value="search">自动检索</option>
+              <option value="link">直接跳转</option>
             </select>
             <select id="customCategory">
               <option value="general">综合</option>
@@ -342,28 +343,32 @@
               <option value="chinese">中文</option>
               <option value="publisher">出版社</option>
             </select>
-            <label class="featured-check"><input type="checkbox" id="customFeatured"> 设为常用入口</label>
+            
             <button class="primary" onclick="addCustomFromUI()">添加入口</button>
           </div>
           <div class="helper" style="margin-top:8px;">
-            说明：自定义入口属于“跳转检索”，不会进入统一结果区。支持双模式：<code>自动搜索</code> 需要在 URL 中包含 <code>{q}</code>；<code>纯跳转</code> 只保存网址，点击后直接打开。
+            说明：自定义入口用于补充检索，不会显示在自动检索结果中。<br>自动检索需在地址中包含 <code>{q}</code>；直接跳转仅保存网址。
           </div>
           <div id="customList" class="custom-list"></div>
         </div>
       </div>
 
       <div class="section">
-        <div class="hd">外部入口分类筛选栏</div>
+        <div class="hd">入口分类</div>
         <div class="filters" id="filters"></div>
       </div>
 
       <div class="section">
-        <div class="hd">外部入口池（跳转）</div>
+        <div class="hd">补充检索入口</div>
+        <div style="padding:0 20px 10px;">
+          <button id="togglePlatformsBtn" class="ghost" onclick="togglePlatforms()">展开全部入口</button>
+        </div>
+        <div class="helper" style="padding:0 20px 10px; margin-top:0;">可直接拖动下方入口卡片，自由调整显示顺序；系统会自动记住你调整后的顺序。</div>
         <div class="grid" id="platformGrid"></div>
       </div>
 
       <div class="section">
-        <div class="hd">统一检索输入</div>
+        <div class="hd">开始检索</div>
         <div class="search-wrap">
           <div class="search-box">
             <select id="mode">
@@ -372,20 +377,19 @@
               <option value="doi">DOI</option>
             </select>
             <input class="big" type="text" id="query" placeholder="输入 DOI / 文章标题 / 关键词，例如：neonatal cholestasis SLC10A1" />
-            <button class="primary" onclick="searchPapers()">开始查询</button>
+            <button class="primary" onclick="searchPapers()">开始检索</button>
           </div>
           <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
-            <button class="ghost" onclick="fillExample()">填入示例</button>
+            <button class="ghost" onclick="fillExample()">示例检索</button>
             <button class="ghost" onclick="clearAllData()">清空</button>
-            <button class="ghost" onclick="openExternalFeatured()">打开外部常用入口</button>
-            <button class="ghost" onclick="runApiSelfTest()">API 自检</button>
+            
           </div>
           <div class="view-switch">
             <button class="ghost" onclick="setResultView('report')">报告视图</button>
             <button class="ghost" onclick="setResultView('card')">卡片视图</button>
           </div>
           <div class="helper">
-            使用逻辑：先点“开始查询”让 API 池自动返回结构化结果，再根据需要点击下方外部入口池继续到 Scholar、Scopus、CNKI 或你的自定义平台补查。
+            使用建议：先执行自动检索，再通过下方补充检索入口继续查找全文或其他平台结果。
           </div>
           <div id="status" class="status"></div>
         </div>
@@ -413,12 +417,12 @@
           <div class="empty">执行检索后，这里会显示 API 健康状态、自动降级情况和手动补查建议。</div>
         </div>
         <div class="results" id="results">
-          <div class="empty">还没有结果。请先输入 DOI、文章标题或关键词，然后点击“开始查询”。API池会自动查询，外部入口池用于继续跳转补查。</div>
+          <div class="empty">还没有结果。请先输入 DOI、文章标题或关键词，然后点击“开始检索”。自动检索会返回结果，补充检索入口用于继续跳转补查。</div>
         </div>
       </div>
 
       <div class="section">
-        <div class="hd">结果筛选 / 去重 / PDF</div>
+        <div class="hd">结果筛选与整理</div>
         <div class="bd">
           <div id="filterPanel" class="filter-panel">
             <div class="empty">请先执行一次检索，随后可在这里按年份区间、年月范围、去重和 PDF 条件筛选结果。</div>
@@ -435,6 +439,8 @@
 let customPlatforms = [];
 let resultView = localStorage.getItem('resultView') || 'report';
 let lastSearchState = null;
+let showAllPlatforms = false;
+let platformOrder = JSON.parse(localStorage.getItem('platformOrder') || '[]');
 
 const API_TIMEOUT_MS = 12000;
 const AUTO_RETRY_DELAY_MS = 650;
@@ -448,6 +454,8 @@ const apiPlatforms = [
   {name:'Crossref',desc:'Crossref REST API',type:'api'},
   {name:'Europe PMC',desc:'Europe PMC REST API',type:'api'},
   {name:'DOAJ',desc:'DOAJ public API',type:'api'},
+  {name:'bioRxiv',desc:'bioRxiv content API',type:'api'},
+  {name:'medRxiv',desc:'medRxiv content API',type:'api'},
   {name:'arXiv',desc:'arXiv Atom API',type:'api'}
 ];
 
@@ -462,22 +470,64 @@ const platforms = [
   {name:'DOAJ',category:'oa',featured:true,desc:'开放获取期刊',url:'https://doaj.org/search/articles?ref=homepage-search&query={q}',home:'https://doaj.org/'},
   {name:'ResearchGate',category:'general',featured:true,desc:'作者分享平台',url:'https://www.researchgate.net/search/publication?q={q}'},
   {name:'Scopus',category:'general',featured:true,desc:'摘要与引文',url:'https://www.scopus.com/results/results.uri?query={q}'},
+
   {name:'Web of Science',category:'general',featured:false,desc:'引文检索',url:'https://www.webofscience.com/wos/woscc/basic-search?search_mode=GeneralSearch&value(input1)={q}'},
   {name:'Dimensions',category:'general',featured:false,desc:'学术分析平台',url:'https://app.dimensions.ai/discover/publication?search_text={q}'},
   {name:'Lens',category:'general',featured:false,desc:'学术与专利',url:'https://www.lens.org/lens/search/scholar/list?query={q}'},
+
   {name:'BASE',category:'oa',featured:false,desc:'开放仓储聚合',url:'https://www.base-search.net/Search/Results?lookfor={q}'},
   {name:'CORE',category:'oa',featured:false,desc:'开放全文聚合',url:'https://core.ac.uk/search?q={q}'},
+  {name:'Unpaywall',category:'oa',featured:false,desc:'开放获取查询',url:'https://unpaywall.org/'},
+
   {name:'bioRxiv',category:'preprint',featured:false,desc:'生物预印本',url:'https://www.biorxiv.org/search/{q}%20numresults%3A10%20sort%3Arelevance-rank'},
   {name:'medRxiv',category:'preprint',featured:false,desc:'医学预印本',url:'https://www.medrxiv.org/search/{q}%20numresults%3A10%20sort%3Arelevance-rank'},
   {name:'arXiv',category:'preprint',featured:false,desc:'综合预印本',url:'https://arxiv.org/search/?query={q}&searchtype=all',home:'https://arxiv.org/'},
+  {name:'SSRN',category:'preprint',featured:false,desc:'社会科学预印本',url:'https://www.ssrn.com/index.cfm/en/search-results/?query={q}'},
+  {name:'ChemRxiv',category:'preprint',featured:false,desc:'化学预印本',url:'https://chemrxiv.org/engage/chemrxiv/public-dashboard?search={q}'},
+  {name:'Research Square',category:'preprint',featured:false,desc:'多学科预印本',url:'https://www.researchsquare.com/search?query={q}'},
+  {name:'Preprints.org',category:'preprint',featured:false,desc:'开放预印本',url:'https://www.preprints.org/search?query={q}'},
+  {name:'OSF Preprints',category:'preprint',featured:false,desc:'OSF 预印本',url:'https://osf.io/preprints/discover?q={q}'},
+
+  {name:'Cochrane Library',category:'medical',featured:false,desc:'循证医学',url:'https://www.cochranelibrary.com/advanced-search?text={q}'},
+  {name:'ClinicalTrials.gov',category:'medical',featured:false,desc:'临床试验',url:'https://clinicaltrials.gov/search?term={q}'},
+  {name:'Embase',category:'medical',featured:false,desc:'生物医学文摘',url:'https://www.embase.com/search/results?query={q}'},
+  {name:'Trip Database',category:'medical',featured:false,desc:'循证资源',url:'https://www.tripdatabase.com/search?criteria={q}'},
+  {name:'Epistemonikos',category:'medical',featured:false,desc:'系统综述',url:'https://www.epistemonikos.org/en/search?term={q}'},
+  {name:'NLM Bookshelf',category:'medical',featured:false,desc:'医学图书',url:'https://www.ncbi.nlm.nih.gov/books/?term={q}'},
+
   {name:'PLOS',category:'publisher',featured:false,desc:'开放出版平台',url:'https://journals.plos.org/plosone/search?q={q}'},
   {name:'Springer',category:'publisher',featured:false,desc:'Springer 内容',url:'https://link.springer.com/search?query={q}'},
   {name:'Wiley',category:'publisher',featured:false,desc:'Wiley Online Library',url:'https://onlinelibrary.wiley.com/action/doSearch?AllField={q}'},
   {name:'ScienceDirect',category:'publisher',featured:false,desc:'Elsevier 平台',url:'https://www.sciencedirect.com/search?qs={q}'},
   {name:'Nature',category:'publisher',featured:false,desc:'Nature Portfolio',url:'https://www.nature.com/search?q={q}'},
+  {name:'Cell Press',category:'publisher',featured:false,desc:'Cell Press 平台',url:'https://www.cell.com/search?searchText={q}'},
+  {name:'Frontiers',category:'publisher',featured:false,desc:'Frontiers 检索',url:'https://www.frontiersin.org/search?query={q}'},
+  {name:'MDPI',category:'publisher',featured:false,desc:'MDPI 期刊',url:'https://www.mdpi.com/search?sort=pubdate&page_no=1&q={q}'},
+  {name:'JAMA Network',category:'publisher',featured:false,desc:'JAMA 系列',url:'https://jamanetwork.com/searchresults?q={q}'},
+  {name:'NEJM',category:'publisher',featured:false,desc:'新英格兰医学',url:'https://www.nejm.org/search?query={q}'},
+
+  {name:'IEEE Xplore',category:'general',featured:false,desc:'工程技术',url:'https://ieeexplore.ieee.org/search/searchresult.jsp?queryText={q}'},
+  {name:'ACM Digital Library',category:'general',featured:false,desc:'计算机学术库',url:'https://dl.acm.org/action/doSearch?AllField={q}'},
+  {name:'ERIC',category:'general',featured:false,desc:'教育文献',url:'https://eric.ed.gov/?q={q}'},
+  {name:'PsycINFO',category:'general',featured:false,desc:'心理学数据库',url:'https://psycnet.apa.org/search/results?query={q}'},
+  {name:'RePEc',category:'general',featured:false,desc:'经济学资源',url:'https://ideas.repec.org/cgi-bin/htsearch?q={q}'},
+
+  {name:'ORCID',category:'doi',featured:false,desc:'作者身份',url:'https://orcid.org/orcid-search/search?searchQuery={q}'},
+  {name:'OpenCitations',category:'doi',featured:false,desc:'开放引文',url:'https://opencitations.net/index/search?text={q}'},
+  {name:'DOI Resolver',category:'doi',featured:false,desc:'DOI 跳转',url:'https://doi.org/{q}'},
+  {name:'Crossmark',category:'doi',featured:false,desc:'出版状态',url:'https://search.crossref.org/?q={q}'},
+  {name:'DataCite',category:'doi',featured:false,desc:'研究数据 DOI',url:'https://commons.datacite.org/?query={q}'},
+
   {name:'CNKI',category:'chinese',featured:false,desc:'中国知网',url:'https://kns.cnki.net/kns8s/search?kw={q}'},
   {name:'万方',category:'chinese',featured:false,desc:'万方数据',url:'https://s.wanfangdata.com.cn/paper?q={q}'},
-  {name:'维普',category:'chinese',featured:false,desc:'中文期刊',url:'https://www.cqvip.com/search/search.aspx?key={q}'}
+  {name:'维普',category:'chinese',featured:false,desc:'中文期刊',url:'https://www.cqvip.com/search/search.aspx?key={q}'},
+  {name:'超星发现',category:'chinese',featured:false,desc:'中文聚合检索',url:'https://ss.zhizhen.com/s?sw={q}'},
+  {name:'国家哲学社科文献中心',category:'chinese',featured:false,desc:'中文社科资源',url:'https://www.ncpssd.cn/search?keyword={q}'},
+  {name:'国家医学知识库',category:'chinese',featured:false,desc:'医学中文资源',url:'https://www.medsci.cn/search?q={q}'},
+  {name:'中国生物医学文献服务系统',category:'chinese',featured:false,desc:'CBM 类资源',url:'https://www.sinomed.ac.cn/index.jsp?query={q}'},
+  {name:'台湾博硕士论文知识加值系统',category:'chinese',featured:false,desc:'台湾论文',url:'https://ndltd.ncl.edu.tw/cgi-bin/gs32/gsweb.cgi/search?o=dnclcdr&s={q}'},
+  {name:'Airiti Library',category:'chinese',featured:false,desc:'华艺线上图书馆',url:'https://www.airitilibrary.com/Search/alResult?Keyword={q}'},
+  {name:'香港公共图书馆',category:'chinese',featured:false,desc:'中文馆藏检索',url:'https://webcat.hkpl.gov.hk/search/query?term_1={q}'}
 ];
 
 const categoryLabels = {
@@ -520,6 +570,83 @@ function extractYearMonth(v){
 function normalizeTitleKey(title){
   return String(title || '').toLowerCase().replace(/<[^>]+>/g,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 }
+
+function normalizeLooseText(v){
+  return String(v || '').toLowerCase().replace(/<[^>]+>/g, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim();
+}
+function scoreKeywordMatch(text, query){
+  const hay = normalizeLooseText(text);
+  const needle = normalizeLooseText(query);
+  if(!needle) return 0;
+  if(hay.includes(needle)) return 1000 + needle.length;
+  const tokens = needle.split(' ').filter(Boolean);
+  if(!tokens.length) return 0;
+  let score = 0;
+  tokens.forEach(token => {
+    if(hay.includes(token)) score += Math.max(3, token.length);
+  });
+  return score;
+}
+function sortByScore(items){
+  return [...items].sort((a, b) => (b._score || 0) - (a._score || 0));
+}
+function formatMaybeDate(v){
+  const s = String(v || '').trim();
+  if(!s) return '';
+  return s.length >= 7 ? s.slice(0, 7) : s;
+}
+async function fetchBiorxivWindow({server, domain, days=365, query='', rows=5, maxPages=4, titleOnly=false}){
+  const hits = [];
+  for(let page = 0; page < maxPages; page++){
+    const cursor = page * 100;
+    const url = `https://${domain}/details/${server}/${days}d/${cursor}/json`;
+    const res = await fetchWithTimeout(url);
+    if(!res.ok) throw new Error(`${server} recent-window 查询失败`);
+    const data = await res.json();
+    const collection = data.collection || [];
+    if(!collection.length) break;
+    collection.forEach(item => {
+      const title = item.title || item.preprint_title || '';
+      const abstractText = item.abstract || item.preprint_abstract || '';
+      const authors = item.authors || item.preprint_authors || '';
+      const category = item.category || item.preprint_category || '';
+      const haystack = titleOnly ? title : `${title} ${abstractText} ${authors} ${category}`;
+      const score = scoreKeywordMatch(haystack, query);
+      if(score > 0) hits.push({...item, _score: score});
+    });
+    if(hits.length >= rows * 3) break;
+  }
+  return sortByScore(hits).slice(0, rows);
+}
+function makeBiorxivResult(serverLabel, serverDomain, item){
+  const title = item.title || item.preprint_title || '(untitled)';
+  const doi = item.doi || item.biorxiv_doi || '';
+  const publishedDoi = item.published || item.published_doi || '';
+  const journal = item.journal || item.published_journal || serverLabel;
+  const pubdate = item.date || item.preprint_date || item.published_date || '';
+  const authors = item.authors || item.preprint_authors || '';
+  const category = item.category || item.preprint_category || '';
+  const abstractText = item.abstract || item.preprint_abstract || '';
+  const doiLink = doi ? `https://doi.org/${doi}` : `https://www.${serverDomain}.org/search/${enc(title)}%20numresults%3A10%20sort%3Arelevance-rank`;
+  const searchLink = `https://www.${serverDomain}.org/search/${enc(title)}%20numresults%3A10%20sort%3Arelevance-rank`;
+  return makeResultItem(serverLabel, title, {
+    journal,
+    pubdate: formatMaybeDate(pubdate),
+    authors,
+    summary: abstractText ? abstractText.slice(0, 220) + (abstractText.length > 220 ? '…' : '') : '',
+    category: category || ''
+  }, [
+    {label:serverLabel, url:doiLink},
+    {label:'站内搜索', url:searchLink},
+    ...(publishedDoi ? [{label:'Published DOI', url:`https://doi.org/${publishedDoi}`}] : []),
+    ...buildApiJumpLinks(title, publishedDoi || doi).filter(link => ![serverLabel].includes(link.label))
+  ], {
+    doi,
+    year:extractYear(pubdate),
+    yearMonth:extractYearMonth(pubdate),
+    openAccess:'预印本'
+  });
+}
 function uniqueUrls(list){
   const seen = new Set();
   return (list || []).filter(x => {
@@ -553,20 +680,102 @@ function renderFilters(){
   const keys = ['all','medical','general','oa','preprint','doi','chinese','publisher'];
   box.innerHTML = keys.map(k => `<button class="filter-btn ${activeCategory===k?'active':''}" onclick="setCategory('${k}')">${categoryLabels[k]}</button>`).join('');
 }
+function getPlatformOrderKey(item){
+  return `${item.name}__${item.category}__${item.url}`;
+}
+function savePlatformOrder(){
+  localStorage.setItem('platformOrder', JSON.stringify(platformOrder));
+}
+function sortPlatformsByCustomOrder(items){
+  const orderMap = new Map(platformOrder.map((key, idx) => [key, idx]));
+  return [...items].sort((a, b) => {
+    const aKey = getPlatformOrderKey(a);
+    const bKey = getPlatformOrderKey(b);
+    const aHas = orderMap.has(aKey);
+    const bHas = orderMap.has(bKey);
+    if(aHas && bHas) return orderMap.get(aKey) - orderMap.get(bKey);
+    if(aHas) return -1;
+    if(bHas) return 1;
+    if((b.featured===true) !== (a.featured===true)) return (b.featured===true) - (a.featured===true);
+    return a.name.localeCompare(b.name, 'zh-CN');
+  });
+}
+function ensurePlatformOrder(pool){
+  const keys = pool.map(getPlatformOrderKey);
+  const keySet = new Set(keys);
+  platformOrder = platformOrder.filter(key => keySet.has(key));
+  keys.forEach(key => {
+    if(!platformOrder.includes(key)) platformOrder.push(key);
+  });
+  savePlatformOrder();
+}
+function movePlatformItem(dragKey, targetKey){
+  if(!dragKey || !targetKey || dragKey === targetKey) return;
+  const dragIdx = platformOrder.indexOf(dragKey);
+  const targetIdx = platformOrder.indexOf(targetKey);
+  if(dragIdx === -1 || targetIdx === -1) return;
+  const [moved] = platformOrder.splice(dragIdx, 1);
+  platformOrder.splice(targetIdx, 0, moved);
+  savePlatformOrder();
+}
+function bindPlatformDragEvents(){
+  const box = document.getElementById('platformGrid');
+  if(!box) return;
+  const cards = [...box.querySelectorAll('.platform-card.draggable')];
+  cards.forEach(card => {
+    card.addEventListener('dragstart', e => {
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', card.dataset.key || '');
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      cards.forEach(x => x.classList.remove('drag-over'));
+    });
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      card.classList.add('drag-over');
+    });
+    card.addEventListener('dragleave', () => {
+      card.classList.remove('drag-over');
+    });
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      const dragKey = e.dataTransfer.getData('text/plain');
+      const targetKey = card.dataset.key || '';
+      cards.forEach(x => x.classList.remove('drag-over'));
+      movePlatformItem(dragKey, targetKey);
+      renderGrid();
+      setStatus('已更新补充检索入口顺序。');
+    });
+  });
+}
 function renderGrid(){
   const box = document.getElementById('platformGrid');
   const pool = getExternalPlatforms();
-  const items = activeCategory === 'all' ? pool : pool.filter(x => x.category === activeCategory);
-  box.innerHTML = items.map(x => `
-    <div class="platform-card">
+  ensurePlatformOrder(pool);
+  const filtered = activeCategory === 'all' ? pool : pool.filter(x => x.category === activeCategory);
+  const items = sortPlatformsByCustomOrder(filtered);
+  const displayItems = showAllPlatforms ? items : items.slice(0, 10);
+  box.innerHTML = displayItems.map(x => `
+    <div class="platform-card draggable" draggable="true" data-key="${safeText(getPlatformOrderKey(x))}">
       <div>
         <a target="_blank" rel="noopener noreferrer" href="${platformUrl(x)}">${safeText(x.name)}</a>
         <small>${safeText(x.desc)}</small>
       </div>
     </div>
   `).join('');
+  const btn = document.getElementById('togglePlatformsBtn');
+  if(btn){
+    btn.innerText = showAllPlatforms ? '收起入口' : '展开全部入口';
+  }
+  bindPlatformDragEvents();
 }
 function setCategory(cat){ activeCategory = cat; renderFilters(); renderGrid(); }
+function togglePlatforms(){
+  showAllPlatforms = !showAllPlatforms;
+  renderGrid();
+}
 function saveCustomPlatforms(){ localStorage.setItem('customPlatforms', JSON.stringify(customPlatforms)); }
 function loadCustomPlatforms(){
   try{
@@ -610,19 +819,18 @@ function addCustomFromUI(){
   const url = document.getElementById('customUrl').value.trim();
   const mode = document.getElementById('customMode').value;
   const category = document.getElementById('customCategory').value;
-  const featured = document.getElementById('customFeatured').checked;
+  const featured = false;
   if(!name || !url){ alert('请填写名称和 URL'); return; }
   if(mode === 'search' && !url.includes('{q}')){ alert('自动搜索模式下，URL 必须包含 {q} 作为搜索词占位符'); return; }
   const exists = customPlatforms.some(item => String(item.name || '').trim().toLowerCase() === name.toLowerCase() && String(item.url || '').trim() === url && String(item.mode || 'search') === mode);
   if(exists){ setStatus(`已存在同名同地址入口：<b>${safeText(name)}</b>`); return; }
-  customPlatforms.push({ name, mode, category, featured, desc: mode === 'link' ? '自定义入口 · 纯跳转' : '自定义入口 · 自动搜索', url });
+  customPlatforms.push({ name, mode, category, featured, desc: mode === 'link' ? '自定义入口 · 直接跳转' : '自定义入口 · 自动检索', url });
   saveCustomPlatforms(); renderCustomList(); renderGrid();
   document.getElementById('customName').value = '';
   document.getElementById('customUrl').value = '';
   document.getElementById('customMode').value = 'search';
   document.getElementById('customCategory').value = 'general';
-  document.getElementById('customFeatured').checked = false;
-  setStatus(`已添加自定义入口：<b>${safeText(name)}</b>（${mode === 'link' ? '纯跳转' : '自动搜索'}）`);
+  setStatus(`已添加自定义入口：<b>${safeText(name)}</b>（${mode === 'link' ? '直接跳转' : '自动检索'}）`);
 }
 function removeCustom(index){
   const name = customPlatforms[index] ? customPlatforms[index].name : '';
@@ -634,27 +842,21 @@ function fillExample(){
   document.getElementById('mode').value = 'keyword';
   document.getElementById('query').value = 'neonatal cholestasis SLC10A1 UGT1A1';
   renderGrid();
-  setStatus('已填入示例。你可以直接点击“开始查询”。');
+  setStatus('已填入示例。你可以直接点击“开始检索”。');
 }
 function clearAllData(){
   document.getElementById('mode').value = 'keyword';
   document.getElementById('query').value = '';
   renderGrid();
   lastSearchState = null;
-  document.getElementById('results').innerHTML = '<div class="empty">还没有结果。请先输入 DOI、文章标题或关键词，然后点击“开始查询”。</div>';
+  document.getElementById('results').innerHTML = '<div class="empty">还没有结果。请先输入 DOI、文章标题或关键词，然后点击“开始检索”。</div>';
   document.getElementById('filterPanel').innerHTML = '<div class="empty">请先执行一次检索，随后可在这里按年份区间、年月范围、去重和 PDF 条件筛选结果。</div>';
   document.getElementById('filterStats').innerHTML = '';
   document.getElementById('filteredResults').innerHTML = '<div class="empty">筛选结果会显示在这里。</div>';
   renderApiHealth([], '');
   setStatus('已清空。');
 }
-function openExternalFeatured(){
-  const items = getExternalPlatforms().filter(x => x.featured).slice(0,10);
-  if(!items.length){ setStatus('当前没有可打开的外部常用入口。'); return; }
-  window.open(platformUrl(items[0]), '_blank', 'noopener,noreferrer');
-  const rest = items.slice(1).map(x => `<a target="_blank" rel="noopener noreferrer" href="${platformUrl(x)}">${safeText(x.name)}</a>`).join(' · ');
-  setStatus(`已打开 1 个外部常用入口：<b>${safeText(items[0].name)}</b>${rest ? `。其余入口：${rest}` : ''}`);
-}
+
 function setStatus(msg){ document.getElementById('status').innerHTML = msg; }
 
 function fetchWithTimeout(url, options={}, timeoutMs=API_TIMEOUT_MS){
@@ -996,6 +1198,97 @@ const API_REGISTRY = {
         apiDetail:{name:'DOAJ', searchUrl:url, topTitle:ctx.query, topDoi: ctx.mode === 'doi' ? normalizeDOI(ctx.query).toLowerCase() : '', openAccess:'Yes', bestLink:url, extraLinks:[{label:'DOAJ 搜索页', url}]}
       };
     }
+
+  },
+  biorxiv: {
+    name:'bioRxiv',
+    website:q => `https://www.biorxiv.org/search/${enc(q)}%20numresults%3A10%20sort%3Arelevance-rank`,
+    adapters:[{
+      id:'biorxiv-details-v1',
+      label:'bioRxiv details API',
+      supports:['keyword','title','doi'],
+      async run(ctx){
+        if(ctx.mode === 'doi'){
+          const doi = normalizeDOI(ctx.query);
+          const url = `https://api.biorxiv.org/details/biorxiv/${encodeURIComponent(doi)}/na/json`;
+          const res = await fetchWithTimeout(url);
+          if(!res.ok) throw new Error('bioRxiv DOI 查询失败');
+          const data = await res.json();
+          const list = data.collection || [];
+          return list.slice(0, ctx.rows).map(item => makeBiorxivResult('bioRxiv', 'biorxiv', item));
+        }
+        const list = await fetchBiorxivWindow({
+          server:'biorxiv',
+          domain:'api.biorxiv.org',
+          days:365,
+          query:ctx.query,
+          rows:ctx.rows,
+          maxPages:4,
+          titleOnly:ctx.mode === 'title'
+        });
+        return list.map(item => makeBiorxivResult('bioRxiv', 'biorxiv', item));
+      }
+    }],
+    fallback(ctx){
+      const url = this.website(ctx.query);
+      return {
+        searchUrl:url,
+        apiDetail:{
+          name:'bioRxiv',
+          searchUrl:url,
+          topTitle:ctx.query,
+          topDoi: ctx.mode === 'doi' ? normalizeDOI(ctx.query).toLowerCase() : '',
+          openAccess:'Preprint',
+          bestLink:url,
+          extraLinks:[{label:'bioRxiv 页面', url}]
+        }
+      };
+    }
+  },
+  medrxiv: {
+    name:'medRxiv',
+    website:q => `https://www.medrxiv.org/search/${enc(q)}%20numresults%3A10%20sort%3Arelevance-rank`,
+    adapters:[{
+      id:'medrxiv-details-v1',
+      label:'medRxiv details API',
+      supports:['keyword','title','doi'],
+      async run(ctx){
+        if(ctx.mode === 'doi'){
+          const doi = normalizeDOI(ctx.query);
+          const url = `https://api.medrxiv.org/details/medrxiv/${encodeURIComponent(doi)}/na/json`;
+          const res = await fetchWithTimeout(url);
+          if(!res.ok) throw new Error('medRxiv DOI 查询失败');
+          const data = await res.json();
+          const list = data.collection || [];
+          return list.slice(0, ctx.rows).map(item => makeBiorxivResult('medRxiv', 'medrxiv', item));
+        }
+        const list = await fetchBiorxivWindow({
+          server:'medrxiv',
+          domain:'api.medrxiv.org',
+          days:365,
+          query:ctx.query,
+          rows:ctx.rows,
+          maxPages:4,
+          titleOnly:ctx.mode === 'title'
+        });
+        return list.map(item => makeBiorxivResult('medRxiv', 'medrxiv', item));
+      }
+    }],
+    fallback(ctx){
+      const url = this.website(ctx.query);
+      return {
+        searchUrl:url,
+        apiDetail:{
+          name:'medRxiv',
+          searchUrl:url,
+          topTitle:ctx.query,
+          topDoi: ctx.mode === 'doi' ? normalizeDOI(ctx.query).toLowerCase() : '',
+          openAccess:'Preprint',
+          bestLink:url,
+          extraLinks:[{label:'medRxiv 页面', url}]
+        }
+      };
+    }
   },
   arxiv: {
     name:'arXiv',
@@ -1229,6 +1522,7 @@ function buildReportHtml(query, modeLabel, summaryItems){
         <div class="report-section-title">Notes</div>
         <ul class="report-list">
           <li>当前版本支持 API 自动适配，不同版本接口字段变化将通过适配器映射处理。</li>
+          <li>新增 bioRxiv / medRxiv 预印本 API：DOI 直查 + 最近 365 天滚动窗口检索。</li>
           <li>若标准接口失效，系统会自动切换备用适配器，再降级到网页补查。</li>
           <li>最终统一输出为标准结果结构，避免 UI 层反复改动。</li>
         </ul>
@@ -1264,6 +1558,8 @@ function renderFilterPanel(){
     <div class="filter-actions">
       <button class="primary" onclick="applyResultFilters()">应用筛选</button>
       <button class="ghost" onclick="resetResultFilters()">重置筛选</button>
+      <button class="ghost" onclick="rankResultsByArticleScore()">按评分排序</button>
+      <button class="ghost" onclick="showPdfOnlyResults()">仅显示 PDF</button>
     </div>
     <div class="filter-note">说明：年份桶按当前年份回溯；自定义年月区间会在年份桶基础上继续筛选。PDF 链接优先使用 PMC、DOAJ、Crossref/OpenAlex 返回的开放链接，未命中并不等于文章没有全文。</div>
   `;
@@ -1308,6 +1604,88 @@ function dedupeItems(items, mode){
     return true;
   });
 }
+
+function getSourceWeight(source){
+  const map = {
+    'PubMed': 30,
+    'Europe PMC': 28,
+    'DOAJ': 24,
+    'OpenAlex': 22,
+    'Crossref': 20,
+    'bioRxiv': 18,
+    'medRxiv': 18,
+    'arXiv': 16
+  };
+  return map[source] || 10;
+}
+function computeArticleScore(item){
+  let score = 0;
+  if(item.pdfUrl) score += 35;
+  if(item.doi) score += 20;
+  if(item.openAccess === '是' || item.openAccess === '预印本') score += 12;
+  score += getSourceWeight(item.source);
+  if(item.year){
+    const age = new Date().getFullYear() - item.year;
+    if(age <= 1) score += 18;
+    else if(age <= 3) score += 14;
+    else if(age <= 5) score += 10;
+    else if(age <= 10) score += 6;
+    else score += 2;
+  }
+  const title = String(item.title || '').toLowerCase();
+  if(title.includes('review') || title.includes('guideline') || title.includes('consensus')) score += 6;
+  if(title.includes('trial') || title.includes('randomized') || title.includes('meta-analysis')) score += 8;
+  return score;
+}
+function renderResultCardWithScore(item){
+  const score = computeArticleScore(item);
+  const card = renderResultCard(item);
+  return card.replace(
+    '<div class="actions">',
+    `<div class="meta" style="margin-top:8px;"><span class="stat-badge">文章评分：${score}</span></div><div class="actions">`
+  );
+}
+function rankResultsByArticleScore(){
+  if(!lastSearchState){ setStatus('请先执行检索'); return; }
+  const filters = getCurrentFilterValues();
+  let items = lastSearchState.items.slice();
+  items = items.filter(item => withinYearBucket(item, filters.yearBucket));
+  items = items.filter(item => withinMonthRange(item, filters.startMonth, filters.endMonth));
+  if(filters.pdfMode === 'pdfOnly') items = items.filter(item => item.pdfUrl);
+  items = dedupeItems(items, filters.dedupeMode);
+  items = items.sort((a,b) => computeArticleScore(b) - computeArticleScore(a));
+  document.getElementById('filterStats').innerHTML = `
+    <div class="stats-badges">
+      <span class="stat-badge">评分排序后：${items.length}</span>
+      <span class="stat-badge">带 PDF：${items.filter(x => x.pdfUrl).length}</span>
+      <span class="stat-badge">优先项：PDF / DOI / 年份 / 来源</span>
+    </div>`;
+  const box = document.getElementById('filteredResults');
+  box.innerHTML = items.length ? items.map(renderResultCardWithScore).join('') : '<div class="empty">当前条件下没有可评分结果。</div>';
+  setStatus(`已按文章评分完成排序，共 ${items.length} 条结果。`);
+}
+function showPdfOnlyResults(){
+  if(!lastSearchState){ setStatus('请先执行检索'); return; }
+  const pdfMode = document.getElementById('pdfMode');
+  if(pdfMode) pdfMode.value = 'pdfOnly';
+  const filters = getCurrentFilterValues();
+  let items = lastSearchState.items.slice();
+  items = items.filter(item => withinYearBucket(item, filters.yearBucket));
+  items = items.filter(item => withinMonthRange(item, filters.startMonth, filters.endMonth));
+  items = items.filter(item => item.pdfUrl);
+  items = dedupeItems(items, filters.dedupeMode);
+  items = items.sort((a,b) => computeArticleScore(b) - computeArticleScore(a));
+  document.getElementById('filterStats').innerHTML = `
+    <div class="stats-badges">
+      <span class="stat-badge">仅 PDF：${items.length}</span>
+      <span class="stat-badge">排序方式：文章评分</span>
+      <span class="stat-badge">优先项：PDF / DOI / 年份 / 来源</span>
+    </div>`;
+  const box = document.getElementById('filteredResults');
+  box.innerHTML = items.length ? items.map(renderResultCardWithScore).join('') : '<div class="empty">当前条件下没有带 PDF 的文章。</div>';
+  setStatus('已筛选为仅显示带 PDF 的文章，并按文章评分排序。');
+}
+
 function applyResultFilters(){
   if(!lastSearchState){ setStatus('请先执行检索'); return; }
   const filters = getCurrentFilterValues();
@@ -1347,6 +1725,8 @@ function getSourceSelfTestQuery(sourceKey){
     openalex: 'neonatal cholestasis',
     europepmc: 'neonatal cholestasis',
     doaj: 'cholestasis',
+    biorxiv: 'neonatal cholestasis',
+    medrxiv: 'neonatal cholestasis',
     arxiv: 'machine learning'
   };
   return defaults[sourceKey] || 'test';
@@ -1434,7 +1814,7 @@ async function runApiSelfTest(){
   const box = document.getElementById('apiSelfTestWrap');
   if(box) box.innerHTML = '<div class="empty">正在执行 API 自检，请稍候…</div>';
   setStatus('正在执行 API 自检与改版诊断…');
-  const sourceOrder = ['pubmed','crossref','openalex','europepmc','doaj','arxiv'];
+  const sourceOrder = ['pubmed','crossref','openalex','europepmc','doaj','biorxiv','medrxiv','arxiv'];
   const settled = await Promise.allSettled(sourceOrder.map(async (key) => {
     const ctx = getSelfTestCtx(key);
     try{
@@ -1490,7 +1870,7 @@ async function searchPapers(isRetry=false){
   box.innerHTML = '<div class="empty">正在并发查询 API 池，请稍候…</div>';
   setStatus(`${isRetry ? '正在重新调试异常 API：' : '正在检索 API 池：'}<b>${safeText(q)}</b>（类型：${modeLabel}）`);
   const ctx = { query:q, mode, rows, simpleQuery:simplifySearchText(q) };
-  const sourceOrder = ['pubmed','crossref','openalex','europepmc','doaj','arxiv'];
+  const sourceOrder = ['pubmed','crossref','openalex','europepmc','doaj','biorxiv','medrxiv','arxiv'];
   try{
     const settled = await Promise.allSettled(sourceOrder.map(key => runAdaptiveSource(key, ctx)));
     const taskResults = settled.map((item, index) => {
@@ -1709,6 +2089,81 @@ renderFilterPanel();
 renderApiHealth([], '');
 renderApiSelfTest([]);
 PasswordGuard.init();
+
+// ====== v2 UPGRADE START ======
+
+// CORE API
+API_REGISTRY.core = {
+  name:'CORE',
+  website:q => `https://core.ac.uk/search?q=${encodeURIComponent(q)}`,
+  adapters:[{
+    id:'core-v1',
+    supports:['keyword','title'],
+    async run(ctx){
+      const res = await fetch(`https://api.core.ac.uk/v3/search/works?q=${encodeURIComponent(ctx.query)}&limit=${ctx.rows}`);
+      const data = await res.json();
+      return (data.results||[]).map(x=>makeResultItem('CORE',x.title,{
+        journal:x.publisher||'',pubdate:x.yearPublished||''
+      },[
+        ...(x.downloadUrl?[{label:'PDF',url:x.downloadUrl}]:[])
+      ],{doi:x.doi,pdfUrl:x.downloadUrl}));
+    }
+  }]
+};
+
+// Semantic Scholar
+API_REGISTRY.semanticscholar = {
+  name:'Semantic Scholar',
+  website:q => `https://www.semanticscholar.org/search?q=${encodeURIComponent(q)}`,
+  adapters:[{
+    id:'s2',
+    supports:['keyword','title'],
+    async run(ctx){
+      const res = await fetch(`https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(ctx.query)}&limit=${ctx.rows}&fields=title,year,authors,citationCount,url`);
+      const data = await res.json();
+      return (data.data||[]).map(x=>makeResultItem('S2',x.title,{
+        pubdate:x.year||'',journal:`Cited:${x.citationCount||0}`
+      },[{label:'S2',url:x.url}]));
+    }
+  }]
+};
+
+// ClinicalTrials
+API_REGISTRY.clinicaltrials = {
+  name:'ClinicalTrials',
+  website:q => `https://clinicaltrials.gov/search?cond=${encodeURIComponent(q)}`,
+  adapters:[{
+    id:'ct',
+    supports:['keyword'],
+    async run(ctx){
+      const res = await fetch(`https://clinicaltrials.gov/api/query/study_fields?expr=${encodeURIComponent(ctx.query)}&fields=NCTId,BriefTitle&max_rnk=5&fmt=json`);
+      const data = await res.json();
+      return (data.StudyFieldsResponse?.StudyFields||[]).map(x=>makeResultItem('Trial',x.BriefTitle[0],{},[
+        {label:'Trial',url:`https://clinicaltrials.gov/study/${x.NCTId[0]}`}
+      ]));
+    }
+  }]
+};
+
+// GWAS
+API_REGISTRY.gwas = {
+  name:'GWAS',
+  website:q => `https://www.ebi.ac.uk/gwas/search?query=${encodeURIComponent(q)}`,
+  adapters:[{
+    id:'gwas',
+    supports:['keyword'],
+    async run(ctx){
+      const res = await fetch(`https://www.ebi.ac.uk/gwas/rest/api/studies/search?q=${encodeURIComponent(ctx.query)}`);
+      const data = await res.json();
+      return (data._embedded?.studies||[]).slice(0,5).map(x=>makeResultItem('GWAS',x.traitReported,{},[
+        {label:'GWAS',url:x._links.self.href}
+      ]));
+    }
+  }]
+};
+
+// ====== v2 UPGRADE END ======
+
 </script>
   </div>
 </body>
