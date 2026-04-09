@@ -124,6 +124,17 @@
       text-decoration:none; padding:8px 12px; border-radius:10px;
       background:#eff6ff; color:#1d4ed8; font-size:14px; font-weight:700;
     }
+    .result-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .result-badges{ display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 0; }
+    .result-badge{ display:inline-flex; align-items:center; border-radius:999px; padding:4px 10px; font-size:12px; font-weight:800; border:1px solid #dbeafe; background:#eff6ff; color:#1d4ed8; }
+    .result-badge.pdf{ background:#ecfdf5; border-color:#a7f3d0; color:#065f46; }
+    .result-badge.oa{ background:#eef2ff; border-color:#c7d2fe; color:#4338ca; }
+    .result-badge.exact{ background:#fff7ed; border-color:#fdba74; color:#9a3412; }
+    .result-badge.miss{ background:#f3f4f6; border-color:#d1d5db; color:#4b5563; }
+    .search-options{ display:flex; gap:14px; flex-wrap:wrap; margin-top:12px; }
+    .search-option{ display:inline-flex; align-items:center; gap:8px; font-size:14px; color:#374151; background:#f8fafc; border:1px solid #e5e7eb; border-radius:999px; padding:8px 12px; }
+    .search-option input{ accent-color:#2563eb; }
+
     .actions a:hover,.api-health-links a:hover{ background:#dbeafe; }
     .empty{
       border:1px dashed #cbd5e1; background:#f8fafc; padding:18px; border-radius:14px;
@@ -382,7 +393,12 @@
           <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
             <button class="ghost" onclick="fillExample()">示例检索</button>
             <button class="ghost" onclick="clearAllData()">清空</button>
-            
+            <button class="ghost" onclick="batchDownloadAvailablePdfs()">批量下载可用全文</button>
+          </div>
+          <div class="search-options">
+            <label class="search-option"><input type="checkbox" id="exactTitleFirst" checked /> 文章题目精确匹配优先</label>
+            <label class="search-option"><input type="checkbox" id="preferOaFulltext" checked /> 优先自动找 OA 全文</label>
+            <label class="search-option"><input type="checkbox" id="autoMarkPdf" checked /> 找到 PDF 后自动标记</label>
           </div>
           <div class="view-switch">
             <button class="ghost" onclick="setResultView('report')">报告视图</button>
@@ -870,6 +886,70 @@ function simplifySearchText(text){
   if(!raw) return raw;
   return raw.split(/\s+/).filter(Boolean).slice(0, 6).join(' ');
 }
+function isExactTitleMatch(itemTitle, query){
+  if(!itemTitle || !query) return false;
+  return normalizeTitleKey(itemTitle) === normalizeTitleKey(query);
+}
+function getCheckboxValue(id, fallback=false){
+  const el = document.getElementById(id);
+  return el ? !!el.checked : fallback;
+}
+function deriveOpenAccessStatus(item){
+  if(item.pdfUrl) return 'PDF';
+  const openText = String(item.openAccess || '').toLowerCase();
+  if(openText.includes('是') || openText.includes('open') || openText.includes('preprint')) return 'OA';
+  if((item.links || []).some(link => /全文|full text|oa/i.test(link.label || ''))) return 'OA';
+  return '';
+}
+function enrichResultItem(item, query, mode){
+  const enriched = {...item};
+  enriched.titleExact = mode === 'title' && isExactTitleMatch(item.title, query);
+  enriched.fulltextStatus = deriveOpenAccessStatus(item);
+  enriched.hasOa = !!enriched.fulltextStatus;
+  enriched.articleScore = computeArticleScore(enriched, query, mode);
+  return enriched;
+}
+function sortSearchItems(items, query, mode){
+  const preferExact = getCheckboxValue('exactTitleFirst', true);
+  const preferOa = getCheckboxValue('preferOaFulltext', true);
+  return [...items].sort((a, b) => {
+    if(preferExact && mode === 'title' && !!b.titleExact !== !!a.titleExact) return Number(b.titleExact) - Number(a.titleExact);
+    if(preferOa && !!b.hasOa !== !!a.hasOa) return Number(b.hasOa) - Number(a.hasOa);
+    if(!!b.pdfUrl !== !!a.pdfUrl) return Number(!!b.pdfUrl) - Number(!!a.pdfUrl);
+    return (b.articleScore || 0) - (a.articleScore || 0);
+  });
+}
+function getDisplayedItemsForBatchDownload(){
+  if(!lastSearchState || !Array.isArray(lastSearchState.items)) return [];
+  const filters = getCurrentFilterValues();
+  let items = lastSearchState.items.slice();
+  items = items.filter(item => withinYearBucket(item, filters.yearBucket));
+  items = items.filter(item => withinMonthRange(item, filters.startMonth, filters.endMonth));
+  if(filters.pdfMode === 'pdfOnly') items = items.filter(item => item.pdfUrl);
+  items = dedupeItems(items, filters.dedupeMode);
+  items = items.filter(item => item.pdfUrl);
+  return sortSearchItems(items, lastSearchState.query, lastSearchState.mode);
+}
+async function batchDownloadAvailablePdfs(){
+  const items = getDisplayedItemsForBatchDownload().slice(0, 20);
+  if(!items.length){
+    setStatus('当前没有可批量下载的 PDF。');
+    return;
+  }
+  setStatus(`正在批量触发 ${items.length} 个 PDF 下载/打开请求。浏览器可能会提示你允许多文件下载。`);
+  for(const item of items){
+    const link = document.createElement('a');
+    link.href = item.pdfUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    await sleep(350);
+  }
+}
+
 function buildApiJumpLinks(title, doi=''){
   const cleanTitle = (title || '').trim();
   const cleanDoi = normalizeDOI(doi || '').toLowerCase();
@@ -890,6 +970,7 @@ function makeResultItem(source, title, meta, links, extras={}){
   const year = extras.year ?? extractYear(extras.pubdate || meta.pubdate || '');
   const yearMonth = extras.yearMonth || extractYearMonth(extras.pubdate || meta.pubdate || year || '');
   const pdfUrl = extras.pdfUrl || (cleanLinks.find(x => /pdf/i.test(x.label) || /\.pdf(\?|$)/i.test(x.url)) || {}).url || '';
+  const openAccess = extras.openAccess || '';
   return {
     source,
     title: title || '(无标题)',
@@ -899,7 +980,8 @@ function makeResultItem(source, title, meta, links, extras={}){
     year,
     yearMonth,
     pdfUrl,
-    openAccess: extras.openAccess || '',
+    openAccess,
+    fulltextStatus: pdfUrl ? 'PDF' : (openAccess || ''),
     rawKey: doi || normalizeTitleKey(title),
     bestLink: cleanLinks[0] ? cleanLinks[0].url : ''
   };
@@ -918,10 +1000,20 @@ function renderResultCard(item){
   if(item.openAccess) metaLines.push(`<b>开放获取：</b>${safeText(item.openAccess)}`);
   if(item.pdfUrl) metaLines.push(`<b>PDF：</b><a target="_blank" rel="noopener noreferrer" href="${item.pdfUrl}">${safeText(item.pdfUrl)}</a>`);
   if(item.meta.summary) metaLines.push(`<b>摘要：</b>${safeText(item.meta.summary)}`);
+  const badges = [];
+  if(getCheckboxValue('autoMarkPdf', true)){
+    badges.push(`<span class="result-badge ${item.pdfUrl ? 'pdf' : 'miss'}">${item.pdfUrl ? 'PDF 可用' : '暂无 PDF'}</span>`);
+    if(item.hasOa || item.openAccess) badges.push(`<span class="result-badge oa">${safeText(item.fulltextStatus || item.openAccess || 'OA')}</span>`);
+  }
+  if(item.titleExact) badges.push('<span class="result-badge exact">题目精确匹配</span>');
+  if(item.articleScore) badges.push(`<span class="result-badge">评分 ${Math.round(item.articleScore)}</span>`);
   return `
     <div class="result">
-      <span class="src">${safeText(item.source)}</span>
+      <div class="result-top">
+        <span class="src">${safeText(item.source)}</span>
+      </div>
       <div class="title">${safeText(item.title)}</div>
+      <div class="result-badges">${badges.join('')}</div>
       <div class="meta">${metaLines.join('<br>') || ''}</div>
       <div class="actions">${renderActions(item.links)}</div>
     </div>
@@ -1560,6 +1652,7 @@ function renderFilterPanel(){
       <button class="ghost" onclick="resetResultFilters()">重置筛选</button>
       <button class="ghost" onclick="rankResultsByArticleScore()">按评分排序</button>
       <button class="ghost" onclick="showPdfOnlyResults()">仅显示 PDF</button>
+      <button class="ghost" onclick="batchDownloadAvailablePdfs()">批量下载可用全文</button>
     </div>
     <div class="filter-note">说明：年份桶按当前年份回溯；自定义年月区间会在年份桶基础上继续筛选。PDF 链接优先使用 PMC、DOAJ、Crossref/OpenAlex 返回的开放链接，未命中并不等于文章没有全文。</div>
   `;
@@ -1618,11 +1711,11 @@ function getSourceWeight(source){
   };
   return map[source] || 10;
 }
-function computeArticleScore(item){
+function computeArticleScore(item, query='', mode='keyword'){
   let score = 0;
   if(item.pdfUrl) score += 35;
   if(item.doi) score += 20;
-  if(item.openAccess === '是' || item.openAccess === '预印本') score += 12;
+  if(item.openAccess === '是' || item.openAccess === '预印本' || item.hasOa) score += 12;
   score += getSourceWeight(item.source);
   if(item.year){
     const age = new Date().getFullYear() - item.year;
@@ -1635,11 +1728,14 @@ function computeArticleScore(item){
   const title = String(item.title || '').toLowerCase();
   if(title.includes('review') || title.includes('guideline') || title.includes('consensus')) score += 6;
   if(title.includes('trial') || title.includes('randomized') || title.includes('meta-analysis')) score += 8;
+  if(mode === 'title' && isExactTitleMatch(item.title, query)) score += 120;
+  else if(mode === 'title' && normalizeTitleKey(item.title).includes(normalizeTitleKey(query))) score += 35;
+  else score += Math.min(scoreKeywordMatch(item.title, query), 30);
   return score;
 }
 function renderResultCardWithScore(item){
-  const score = computeArticleScore(item);
-  const card = renderResultCard(item);
+  const score = item.articleScore || computeArticleScore(item, lastSearchState?.query || '', lastSearchState?.mode || 'keyword');
+  const card = renderResultCard({...item, articleScore: score});
   return card.replace(
     '<div class="actions">',
     `<div class="meta" style="margin-top:8px;"><span class="stat-badge">文章评分：${score}</span></div><div class="actions">`
@@ -1653,7 +1749,7 @@ function rankResultsByArticleScore(){
   items = items.filter(item => withinMonthRange(item, filters.startMonth, filters.endMonth));
   if(filters.pdfMode === 'pdfOnly') items = items.filter(item => item.pdfUrl);
   items = dedupeItems(items, filters.dedupeMode);
-  items = items.sort((a,b) => computeArticleScore(b) - computeArticleScore(a));
+  items = sortSearchItems(items.map(item => enrichResultItem(item, lastSearchState.query, lastSearchState.mode)), lastSearchState.query, lastSearchState.mode);
   document.getElementById('filterStats').innerHTML = `
     <div class="stats-badges">
       <span class="stat-badge">评分排序后：${items.length}</span>
@@ -1674,7 +1770,7 @@ function showPdfOnlyResults(){
   items = items.filter(item => withinMonthRange(item, filters.startMonth, filters.endMonth));
   items = items.filter(item => item.pdfUrl);
   items = dedupeItems(items, filters.dedupeMode);
-  items = items.sort((a,b) => computeArticleScore(b) - computeArticleScore(a));
+  items = sortSearchItems(items.map(item => enrichResultItem(item, lastSearchState.query, lastSearchState.mode)), lastSearchState.query, lastSearchState.mode);
   document.getElementById('filterStats').innerHTML = `
     <div class="stats-badges">
       <span class="stat-badge">仅 PDF：${items.length}</span>
@@ -1697,6 +1793,7 @@ function applyResultFilters(){
   if(filters.pdfMode === 'pdfOnly') items = items.filter(item => item.pdfUrl);
   const beforeDedupe = items.length;
   items = dedupeItems(items, filters.dedupeMode);
+  items = sortSearchItems(items.map(item => enrichResultItem(item, lastSearchState.query, lastSearchState.mode)), lastSearchState.query, lastSearchState.mode);
   const removedDup = beforeDedupe - items.length;
   document.getElementById('filterStats').innerHTML = `
     <div class="stats-badges">
@@ -1892,14 +1989,16 @@ async function searchPapers(isRetry=false){
     summaries.push(makePlatformSummary('Google Scholar', 'Manual link', 'N/A', `https://scholar.google.com/scholar?q=${enc(q)}`, 'N/A'));
     summaries.push(makePlatformSummary('Scopus', 'Manual link', 'N/A', `https://www.scopus.com/results/results.uri?query=${enc(q)}`, 'N/A'));
     summaries.push(makePlatformSummary('CNKI', 'Manual link', 'N/A', `https://kns.cnki.net/kns8s/search?kw=${enc(q)}`, 'N/A'));
+    const enrichedItems = allItems.map(item => enrichResultItem(item, q, mode));
+    const sortedItems = sortSearchItems(enrichedItems, q, mode);
     const reportHtml = buildReportHtml(q, modeLabel, summaries);
-    lastSearchState = { query:q, modeLabel, items:allItems, reportHtml, taskResults };
+    lastSearchState = { query:q, modeLabel, mode, items:sortedItems, reportHtml, taskResults };
     renderMainResults();
     renderFilterPanel();
     applyResultFilters();
     const health = buildHealthSummary(taskResults);
     const warn = (health.failed || health.degraded) ? `；其中失败 ${health.failed} 个，已降级 ${health.degraded} 个` : '';
-    setStatus(`${isRetry ? '重新检测完成' : 'API池查询完成'}。当前共抓取 ${allItems.length} 条结构化结果${warn}。系统已启用“自动适配版本切换”。`);
+    setStatus(`${isRetry ? '重新检测完成' : 'API池查询完成'}。当前共抓取 ${sortedItems.length} 条结构化结果${warn}。已启用题目精确优先、OA 全文优先和 PDF 自动标记。`);
   }catch(e){
     lastSearchState = null;
     renderApiHealth([], '');
